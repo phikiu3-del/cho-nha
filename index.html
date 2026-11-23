@@ -56,6 +56,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .top .wrap{padding-block:10px 8px;display:flex;flex-direction:column;gap:8px}
 .title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .lt{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.1}
+.logo{width:52px;height:52px;border-radius:16px;border:0;padding:0;overflow:hidden;flex:none;background:var(--surface);box-shadow:var(--card-shadow)}.logo img{width:100%;height:100%;object-fit:cover;display:block}
+.av-edit{display:flex;align-items:center;gap:16px;padding:16px}.av-big{width:88px;height:88px;border-radius:24px;overflow:hidden;flex:none;display:grid;place-items:center;font-size:36px;font-weight:800;color:#fff;background:linear-gradient(135deg,color-mix(in srgb,var(--brand) 88%,#000),color-mix(in srgb,var(--brand) 52%,#000))}.av-big img{width:100%;height:100%;object-fit:cover;display:block}
+.av-btns{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}.av-btns label,.av-btns button{display:flex;align-items:center;justify-content:center;gap:6px;height:40px;border-radius:12px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:15px;border:0;cursor:pointer}.av-btns .rm{background:none;color:var(--expense);height:28px;font-weight:600}
 .shopname{font-size:13px;color:var(--muted);font-weight:600}
 .circle{width:38px;height:38px;border-radius:50%;border:0;background:var(--surface);display:grid;place-items:center;color:var(--brand);position:relative;flex:none}
 .circle svg{width:20px;height:20px}
@@ -269,7 +272,7 @@ body.has-bill .view{padding-bottom:84px}
 
 <header class="top"><div class="wrap">
   <div class="title-row">
-    <div style="min-width:0"><div class="shopname" id="shopName">Chợ Nhà</div><h1 class="lt" id="viewTitle">Bán hàng</h1></div>
+    <div style="min-width:0;display:flex;align-items:center;gap:12px"><button class="logo" id="shopLogo" data-go="report" data-rtab="settings" aria-label="Ảnh cửa hàng" hidden></button><div style="min-width:0"><div class="shopname" id="shopName">Chợ Nhà</div><h1 class="lt" id="viewTitle">Bán hàng</h1></div></div>
     <div style="display:flex;gap:8px" id="topActions"></div>
   </div>
   <div class="search" id="searchBox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Tìm sản phẩm, dịch vụ" aria-label="Tìm kiếm"></div>
@@ -457,6 +460,7 @@ function applyAccent(){
   const dark=th==='dark'||(th!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.style.setProperty('--brand',dark?a[2]:a[1]);
   $('#shopName').textContent=settings.shop||'Chợ Nhà';
+  const lg=$('#shopLogo');lg.hidden=!settings.logo;lg.innerHTML=settings.logo?`<img src="${settings.logo}" alt="">`:'';
 }
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAccent)}catch(e){}
 new MutationObserver(applyAccent).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
@@ -768,7 +772,9 @@ function rStock(){
   <div class="panel"><h3>Tồn kho</h3><div class="hbar">${goods.slice().sort((a,b)=>a.stock-b.stock).map(p=>`<span class="nm">${p.emoji} ${esc(p.name)}</span><span class="num ${p.stock<5?'low':''}">${p.stock}</span><div class="track"><i style="width:${Math.max(0,p.stock)/mx*100}%;${p.stock<5?'background:var(--expense)':''}"></i></div>`).join('')}</div></div>`;
 }
 function rSettings(){
-  return `<div class="group-h">Tên cửa hàng</div><div class="group"><div class="cell"><input id="set-shop" value="${esc(settings.shop)}" style="border:0;background:none;width:100%;padding:0" aria-label="Tên cửa hàng"></div></div>
+  return `<div class="group-h">Ảnh cửa hàng</div><div class="group"><div class="av-edit"><div class="av-big">${settings.logo?`<img src="${settings.logo}" alt="Ảnh cửa hàng">`:esc((settings.shop||'C').trim().charAt(0).toUpperCase())}</div>
+   <div class="av-btns"><label>🖼️ Chọn ảnh trong máy<input type="file" accept="image/*" class="logo-in" hidden></label><label>📷 Chụp ảnh<input type="file" accept="image/*" capture="environment" class="logo-in" hidden></label>${settings.logo?'<button class="rm" id="logoRm">Xóa ảnh</button>':''}</div></div></div>
+  <div class="group-h">Tên cửa hàng</div><div class="group"><div class="cell"><input id="set-shop" value="${esc(settings.shop)}" style="border:0;background:none;width:100%;padding:0" aria-label="Tên cửa hàng"></div></div>
   <div class="group-h">Màu giao diện</div><div class="group"><div class="swatches">${Object.entries(ACCENTS).map(([k,a])=>`<button data-accent="${k}" aria-pressed="${k===settings.accent}" aria-label="${a[0]}" style="background:${a[1]}"></button>`).join('')}</div></div>
   <div class="group-h">Danh mục</div><div class="group">
    <button class="cell" data-mgr="p"><span class="ic" style="background:var(--brand-soft)">🏷️</span><span class="grow"><span class="t" style="display:block">Danh mục sản phẩm</span><span class="s" style="display:block">${pcats.length} danh mục</span></span>${CHEV}</button>
@@ -792,12 +798,15 @@ function bindReport(){
       p.cost=Math.round((s0*p.cost+q*cost)/(s0+q)/100)*100;p.stock+=q;moves.push({at:Date.now(),pid:p.id,qty:q,cost});save();render();toast(`Đã nhập ${q} ${p.name}`)}}
   if(st.rtab==='settings'){
     $('#setSave').onclick=()=>{settings.shop=$('#set-shop').value.trim()||'Chợ Nhà';settings.bin=$('#set-bin').value;settings.acc=$('#set-acc').value.trim();settings.accName=$('#set-name').value.trim().toUpperCase();save();applyAccent();render();toast('Đã lưu cài đặt')};
+    document.querySelectorAll('.logo-in').forEach(i=>i.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)squareImg(f,256,d=>{settings.logo=d;if(!save()){delete settings.logo;toast('Bộ nhớ đầy, thử ảnh khác');return}applyAccent();render();toast('Đã cập nhật ảnh cửa hàng')})});
+    if($('#logoRm'))$('#logoRm').onclick=()=>{delete settings.logo;save();applyAccent();render();toast('Đã xóa ảnh cửa hàng')};
     $('#restoreIn').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)restoreFile(f)};
     $('#clearSample').onclick=()=>confirmSheet('Xóa toàn bộ sản phẩm, danh mục, đơn hàng, khách hàng và thu chi? App sẽ giữ một bản sao trong "Bản sao tự động" để lấy lại nếu lỡ tay.','Xóa hết',async()=>{await keepSnap('Trước khi xóa hết');products=[];pcats=[];orders=[];customers=[];cash=[];moves=[];debtPays=[];ccats=SYS_CCATS();cart={};discount=0;st.cat='Tất cả';save();render();renderBill();toast('Đã xóa, app trống như mới')});
   }
 }
 function confirmSheet(text,label,fn){sheetMode='confirm';openSheet('Xác nhận',`<p style="margin:8px 4px;font-size:17px">${text}</p>`,`<div class="row"><button class="btn ghost" data-close style="flex:1">Hủy</button><button class="btn danger" id="cfOk" style="flex:1">${label}</button></div>`);$('#cfOk').onclick=()=>{closeSheet();fn()}}
 const UNITS=['cái','kg','gói','hộp','chai','lon','thùng','bó','phần','lượt'];
+function squareImg(file,m,cb){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const sz=Math.min(im.width,im.height),c=document.createElement('canvas');c.width=c.height=Math.min(m,sz);c.getContext('2d').drawImage(im,(im.width-sz)/2,(im.height-sz)/2,sz,sz,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.85))};im.onerror=()=>toast('Không đọc được ảnh này');im.src=r.result};r.readAsDataURL(file)}
 function resizeImg(file,cb){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=320,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.78))};im.onerror=()=>toast('Không đọc được ảnh này');im.src=r.result};r.readAsDataURL(file)}
 const money=v=>v?Number(v).toLocaleString('vi-VN'):'';
 const unmoney=v=>+String(v).replace(/\D/g,'')||0;
