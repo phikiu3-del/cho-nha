@@ -912,7 +912,7 @@ const money=v=>v?Number(v).toLocaleString('vi-VN'):'';
 const unmoney=v=>+String(v).replace(/\D/g,'')||0;
 function openEditor(id,pre){
   const ex=id?P(id):null;sheetMode='edit';
-  const f=ex?{code:'',...ex}:{name:'',code:'',cat:st.cat!=='Tất cả'?st.cat:(pcats[0]?.name||''),emoji:'',img:'',price:0,cost:0,old:0,unit:'cái',stock:10,desc:'',service:false,...(pre||{})};
+  const f=ex?{code:'',...ex}:{name:'',code:'',cat:st.cat!=='Tất cả'?st.cat:(pcats[0]?.name||''),emoji:'',img:'',price:0,cost:0,old:0,unit:'cái',stock:1,desc:'',service:false,...(pre||{})};
   const sync=()=>{f.name=$('#p-name').value;f.code=$('#p-code').value.trim();f.price=unmoney($('#p-price').value);f.cost=unmoney($('#p-cost').value);f.old=unmoney($('#p-old').value);f.stock=Math.max(0,+$('#p-stock').value||0);f.desc=$('#p-desc').value;f.unit=$('#p-unit').value.trim()||'cái';f.service=$('#p-svc').checked;f.emoji=$('#p-emoji').value.trim()};
   const draw=()=>{
     const cat=PC(f.cat);
@@ -931,7 +931,8 @@ function openEditor(id,pre){
      <div class="chips wrap-chips">${pcats.map(c=>`<button type="button" class="chip" data-pcat="${esc(c.name)}" aria-pressed="${c.name===f.cat}" style="${c.name===f.cat?`background:${c.color};color:#fff`:''}">${c.icon} ${esc(c.name)}</button>`).join('')}<button type="button" class="chip" data-pcatnew style="color:var(--brand)">＋ ${pcats.length?'Mới':'Tạo danh mục'}</button>${f.cat?`<button type="button" class="chip sm" data-pcat="" style="color:var(--muted)">Bỏ chọn</button>`:''}</div>
      <div class="group form-list">
       <label class="frow switch-row"><span>Dịch vụ, không tính tồn kho</span><input type="checkbox" id="p-svc" class="switch" ${f.service?'checked':''}></label>
-      <div class="frow" id="stockRow" ${f.service?'hidden':''}><span>Tồn kho</span><div class="stepper"><button type="button" id="stDec">−</button><input id="p-stock" inputmode="numeric" value="${f.stock}" class="num" style="width:56px;text-align:center;border:0;background:none;font-weight:700"><button type="button" id="stInc">+</button></div></div>
+      <div class="frow" id="stockRow" ${f.service?'hidden':''}><span>Số lượng</span><div class="stepper"><button type="button" id="stDec">−</button><input id="p-stock" inputmode="numeric" value="${f.stock}" class="num" style="width:56px;text-align:center;border:0;background:none;font-weight:700"><button type="button" id="stInc">+</button></div></div>
+      <div class="frow hint" id="buyline" style="min-height:0;padding-top:0;padding-bottom:0"></div>
       <div class="frow"><span>Đơn vị</span><input id="p-unit" value="${esc(f.unit)}" placeholder="cái" style="text-align:right"></div>
      </div>
      <div class="chips wrap-chips" style="margin-top:-6px">${UNITS.map(u=>`<button type="button" class="chip sm" data-unit="${u}" aria-pressed="${u===f.unit}">${u}</button>`).join('')}</div>
@@ -943,7 +944,11 @@ function openEditor(id,pre){
       </div></details>`,
      `<div class="row">${ex?'<button class="btn danger" id="pDel">Xóa</button>':''}<button class="btn" id="pSave" style="flex:1">${ex?'Lưu thay đổi':'Thêm sản phẩm'}</button></div>`,
      ex?'':`<button class="link" id="pSaveTop">Lưu</button>`);
-    const mg=()=>{const pr=unmoney($('#p-price').value),co=unmoney($('#p-cost').value);const u=esc($('#p-unit').value||'cái');$('#margin').innerHTML=pr&&co?(pr>=co?`Bán 1 ${u} lời <b class="inc num">${fmt(pr-co)}</b> (${Math.round((pr-co)/pr*100)}%)`:`Bán 1 ${u} <b class="exp">lỗ ${fmt(co-pr)}</b>`):pr&&!$('#p-svc').checked?'':''};mg();
+    let mg=()=>{const pr=unmoney($('#p-price').value),co=unmoney($('#p-cost').value);const u=esc($('#p-unit').value||'cái');$('#margin').innerHTML=pr&&co?(pr>=co?`Bán 1 ${u} lời <b class="inc num">${fmt(pr-co)}</b> (${Math.round((pr-co)/pr*100)}%)`:`Bán 1 ${u} <b class="exp">lỗ ${fmt(co-pr)}</b>`):''};
+    const bl=()=>{const co=unmoney($('#p-cost').value),q=Math.max(0,+$('#p-stock').value||0),u=esc($('#p-unit').value||'cái'),add=ex?q-Math.max(0,ex.stock):q;
+      $('#buyline').innerHTML=!$('#p-svc').checked&&co&&add>0?`Tiền nhập: ${add} ${u} × ${fmt(co)} = <b class="exp num">${fmt(add*co)}</b>`:''};
+    const mg0=mg;mg=()=>{mg0();bl()};mg();
+    $('#p-stock').oninput=mg;$('#p-unit').oninput=mg;
     $('#p-scan').onclick=()=>{sync();openScanner(c=>{f.code=c;draw();toast('Đã lấy mã '+c)},'Quét mã vạch sản phẩm',false,()=>draw())};
     document.querySelectorAll('#sheetBody .money').forEach(i=>i.oninput=()=>{const v=unmoney(i.value);i.value=money(v);mg()});
     document.querySelectorAll('#p-img,.p-file').forEach(inp=>inp.onchange=e=>{const file=e.target.files[0];if(file){sync();toast('Đang xử lý ảnh…');resizeImg(file,u=>{f.img=u;draw()})}});
@@ -951,15 +956,19 @@ function openEditor(id,pre){
     document.querySelectorAll('[data-pcat]').forEach(b=>b.onclick=()=>{sync();f.cat=b.dataset.pcat;draw()});
     $('[data-pcatnew]').onclick=()=>{sync();openCatEditor('p',null,n=>{if(n)f.cat=n;draw()})};
     document.querySelectorAll('[data-unit]').forEach(b=>b.onclick=()=>{sync();f.unit=b.dataset.unit;draw()});
-    $('#p-svc').onchange=()=>{$('#stockRow').hidden=$('#p-svc').checked};
-    $('#stDec').onclick=()=>{$('#p-stock').value=Math.max(0,(+$('#p-stock').value||0)-1)};
-    $('#stInc').onclick=()=>{$('#p-stock').value=(+$('#p-stock').value||0)+1};
+    $('#p-svc').onchange=()=>{$('#stockRow').hidden=$('#p-svc').checked;mg()};
+    $('#stDec').onclick=()=>{$('#p-stock').value=Math.max(0,(+$('#p-stock').value||0)-1);mg()};
+    $('#stInc').onclick=()=>{$('#p-stock').value=(+$('#p-stock').value||0)+1;mg()};
     const doSave=()=>{sync();
       if(!f.name.trim()){toast('Nhập tên sản phẩm');$('#p-name').focus();return}
       if(!(f.price>0)){toast('Nhập giá bán');$('#p-price').focus();return}
       if(f.code&&products.some(x=>x!==ex&&x.code===f.code)){toast('Mã vạch này đã dùng cho sản phẩm khác');return}
       const d={code:f.code||undefined,name:f.name.trim(),emoji:f.emoji||PC(f.cat)?.icon||'🛒',img:f.img||'',cat:f.cat,price:f.price,cost:f.cost,old:f.old>f.price?f.old:undefined,stock:f.service?0:f.stock,unit:f.unit,desc:f.desc.trim(),service:f.service};
-      if(ex){const add=!d.service&&d.stock>ex.stock&&d.cost>0?d.stock-Math.max(0,ex.stock):0;Object.assign(ex,d);if(add>0)moves.push({at:Date.now(),pid:ex.id,qty:add,cost:d.cost})}else{const nid=Math.max(0,...products.map(x=>x.id))+1;products.unshift({id:nid,sold:0,...d});if(!d.service&&d.stock>0&&d.cost>0)moves.push({at:Date.now(),pid:nid,qty:d.stock,cost:d.cost})}
+      if(ex){const diff=d.service?0:d.stock-Math.max(0,ex.stock);
+        if(d.cost!==ex.cost)moves.forEach(m=>{if(m.pid===ex.id&&m.auto)m.cost=d.cost});
+        Object.assign(ex,d);
+        if(diff>0&&d.cost>0)moves.push({at:Date.now(),pid:ex.id,qty:diff,cost:d.cost});
+        if(diff<0){let left=-diff;moves.filter(m=>m.pid===ex.id&&m.qty>0).sort((a,b)=>b.at-a.at).forEach(m=>{const t=Math.min(left,m.qty);m.qty-=t;left-=t});moves=moves.filter(m=>m.qty!==0)}}else{const nid=Math.max(0,...products.map(x=>x.id))+1;products.unshift({id:nid,sold:0,...d});if(!d.service&&d.stock>0&&d.cost>0)moves.push({at:Date.now(),pid:nid,qty:d.stock,cost:d.cost})}
       if(!save()){toast('Bộ nhớ đầy, thử ảnh nhỏ hơn hoặc bỏ bớt ảnh');return}
       closeSheet();render();renderBill();toast(ex?'Đã lưu thay đổi':'Đã thêm '+d.name)};
     $('#pSave').onclick=doSave;if($('#pSaveTop'))$('#pSaveTop').onclick=doSave;
