@@ -405,7 +405,7 @@ idb.open().catch(()=>{});
 function backfillBuys(){let ch=false;
   products.forEach(p=>{if(p.service||!(p.cost>0)||moves.some(m=>m.pid===p.id&&m.qty>0))return;
     const out=moves.filter(m=>m.pid===p.id&&m.qty<0).reduce((a,m)=>a-m.qty,0),qty=Math.max(0,p.stock)+(p.sold||0)+out;if(!qty)return;
-    const first=orders.filter(o=>o.items.some(i=>i.id===p.id)).reduce((a,o)=>Math.min(a,o.at),Date.now());
+    const first=orders.filter(o=>o.items.some(i=>i.id===p.id)).reduce((a,o)=>Math.min(a,o.at),p.id>1e12?Math.floor(p.id/100):Date.UTC(2026,10,23));/* mốc cố định để 2 máy tính ra cùng một bản ghi, không bị trùng */
     moves.push({at:first-1000,pid:p.id,qty,cost:p.cost,auto:true});ch=true});
   if(ch)save()}
 function hasData(){return products.length||orders.length||customers.length||cash.length||pcats.length||debtPays.length}
