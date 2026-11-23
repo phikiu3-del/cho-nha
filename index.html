@@ -913,7 +913,7 @@ function allEntries(){
   const e=cash.map(x=>({...x,manual:true}));
   orders.forEach(o=>{if(o.status==='done'&&!o.debtPaid)e.push({at:o.at,type:'in',cat:'Bán hàng',amount:orderTotal(o),note:`${o.id} · ${C(o.cid)?.name||o.name}`})});
   debtPays.forEach(p=>e.push({at:p.at,type:'in',cat:'Thu nợ',amount:p.amount,note:C(p.cid)?.name||''}));
-  moves.filter(m=>m.qty>0).forEach(m=>e.push({at:m.at,type:'out',cat:'Nhập hàng',amount:m.qty*m.cost,note:`${P(m.pid)?.name||''} × ${m.qty}`}));
+  moves.filter(m=>(m.qty>0||(isFix(m)&&m.qty))&&m.cost>0).forEach(m=>e.push({at:m.at,type:'out',cat:'Nhập hàng',amount:m.qty*(m.cost||0),note:`${P(m.pid)?.name||''} ${m.qty<0?'sửa tồn −'+(-m.qty):'× '+m.qty}`}));
   return e.sort((a,b)=>b.at-a.at);
 }
 function vCash(){
@@ -937,7 +937,7 @@ function vCash(){
    <div class="cal">${cal}</div>
    <div class="group-h row" style="margin-right:16px"><span>${new Date(st.day).toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'numeric'})}</span><span class="num"><span class="inc">+${fmt(dIn)}</span> <span class="exp">−${fmt(dOut)}</span></span></div>
    <div class="group">${dayE.length?dayE.map(e=>{const cc=CC(e.cat),tag=e.manual?'button':'div';
-     return `<${tag} ${e.manual?`data-cashedit="${e.id}"`:''} class="cell">${icBox(cc,44)}<div class="grow"><div class="t">${esc(e.cat)}</div><div class="s">${esc(e.note||'')}${e.manual?'':' · tự động'}</div></div><div class="r big num ${e.type==='in'?'inc':'exp'}">${e.type==='in'?'+':'−'}${fmt(e.amount)}</div></${tag}>`}).join(''):'<div class="empty">Ngày này chưa có khoản nào. Bấm + để thêm.</div>'}</div>
+     return `<${tag} ${e.manual?`data-cashedit="${e.id}"`:''} class="cell">${icBox(cc,44)}<div class="grow"><div class="t">${esc(e.cat)}</div><div class="s">${esc(e.note||'')}${e.manual?'':' · tự động'}</div></div><div class="r big num ${(e.type==='in')===(e.amount>=0)?'inc':'exp'}">${(e.type==='in')===(e.amount>=0)?'+':'−'}${fmt(Math.abs(e.amount))}</div></${tag}>`}).join(''):'<div class="empty">Ngày này chưa có khoản nào. Bấm + để thêm.</div>'}</div>
    <div class="panel"><div class="row"><h3>Chi tiêu theo hạng mục</h3><button class="link" data-mgr="out" style="font-size:14px">Sửa hạng mục</button></div>${cl.length?`<div class="donut-wrap">${donut(cl,tout)}<div class="legend">${cl.map(x=>`<div><span class="sw" style="background:${x.col}"></span><span class="n">${x.ic} ${x.n}</span><span class="num hint">${fmt(x.v)}</span><b class="num">${Math.round(x.v/tout*100)}%</b></div>`).join('')}</div></div>`:'<span class="hint">Tháng này chưa có khoản chi.</span>'}</div>
    </div>`;
 }
