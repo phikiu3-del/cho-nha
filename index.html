@@ -557,7 +557,7 @@ function notices(){let h='';const now=Date.now();
   if(hasData()&&now-last>7*D&&!(settings.backupHide>now))h+=`<div class="notice warn"><span class="ic" style="background:color-mix(in srgb,var(--expense) 14%,transparent)">💾</span><div class="grow"><b>${settings.lastBackup?'Đã '+Math.floor((now-last)/D)+' ngày chưa sao lưu':'Chưa sao lưu lần nào'}</b><span>Lưu 1 file ra Tệp hoặc iCloud để không bao giờ mất dữ liệu.</span></div><button class="btn sm" data-backup>Sao lưu</button><button class="x" data-hide="backup" aria-label="Để sau">✕</button></div>`;
   return h}
 function openInstall(){sheetMode='install';openSheet('Thêm vào màn hình chính',`<div class="steps"><div><span>1</span><p>Mở trang này bằng <b>Safari</b>.</p></div><div><span>2</span><p>Bấm nút <b>Chia sẻ</b> <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg> ở thanh dưới cùng.</p></div><div><span>3</span><p>Kéo xuống, chọn <b>Thêm vào MH chính</b>, rồi bấm <b>Thêm</b>.</p></div><div><span>4</span><p>Từ giờ mở app bằng biểu tượng <b>ODin Goldfish</b> trên màn hình chính.</p></div></div><p class="hint" style="margin:4px">Dữ liệu ở trong máy này. Nếu xóa biểu tượng app hoặc xóa dữ liệu Safari thì dữ liệu sẽ mất, nên thỉnh thoảng hãy vào Cài đặt (bánh răng góc trên) › Sao lưu ra file.</p>`)}
-let st={view:'',cat:'Tất cả',q:'',ofilter:'all',month:null,day:dayStart(),range:7,rtab:'overview'};
+let st={view:'',cat:'Tất cả',q:'',ofilter:'all',op:'all',oAt:Date.now(),oFrom:null,oTo:null,month:null,day:dayStart(),range:7,rtab:'overview'};
 const P=id=>products.find(p=>p.id===id),C=id=>customers.find(c=>c.id===id);
 const PC=n=>pcats.find(c=>c.name===n),CC=n=>ccats.find(c=>c.name===n);
 const soft=col=>`color-mix(in srgb,${col} 20%,var(--surface))`;
@@ -791,15 +791,34 @@ function openPay(){
 }
 
 /* ---------- ORDERS ---------- */
+const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const parseD=v=>{const [y,m,d]=v.split('-').map(Number);return new Date(y,m-1,d||1).getTime()};
+function oRange(){const d=new Date(st.oAt);
+  if(st.op==='day'){const a=new Date(d.getFullYear(),d.getMonth(),d.getDate());return [a.getTime(),new Date(a.getFullYear(),a.getMonth(),a.getDate()+1).getTime()]}
+  if(st.op==='week'){const a=new Date(d.getFullYear(),d.getMonth(),d.getDate()-((d.getDay()+6)%7));return [a.getTime(),new Date(a.getFullYear(),a.getMonth(),a.getDate()+7).getTime()]}
+  if(st.op==='month')return [new Date(d.getFullYear(),d.getMonth(),1).getTime(),new Date(d.getFullYear(),d.getMonth()+1,1).getTime()];
+  if(st.op==='custom'){let a=st.oFrom||dayStart(),b=st.oTo||dayStart();if(a>b)[a,b]=[b,a];const e=new Date(b);return [a,new Date(e.getFullYear(),e.getMonth(),e.getDate()+1).getTime()]}
+  return [0,Infinity]}
+function oLabel(a,b){const f=t=>{const d=new Date(t);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')};
+  if(st.op==='day')return a===dayStart()?'Hôm nay':(()=>{const t=new Date(dayStart());return a===new Date(t.getFullYear(),t.getMonth(),t.getDate()-1).getTime()})()?'Hôm qua':new Date(a).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+  if(st.op==='week')return f(a)+' – '+f(b-1)+'/'+new Date(b-1).getFullYear();
+  return 'Tháng '+(new Date(a).getMonth()+1)+'/'+new Date(a).getFullYear()}
 function orderCell(o){const c=o.cid&&C(o.cid);
   return `<button class="cell" data-order="${o.id}"><div class="grow"><div class="t">${esc(c?c.name:o.name)} <span class="pill ${STATUS[o.status][1]}">${STATUS[o.status][0]}</span></div>
   <div class="s">${new Date(o.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit'})} · ${o.id} · ${o.items.map(i=>P(i.id)?.emoji||'').join('')}</div></div>
   <div class="r"><div class="big num ${o.status==='cancel'?'hint':''}" style="${o.status==='cancel'?'text-decoration:line-through':''}">${fmt(orderTotal(o))}</div><div class="s">${PAY[o.pay]}</div></div>${CHEV}</button>`}
 function vOrders(){
   const F={all:'Tất cả',new:'Ghi nợ',ship:'Đang giao',done:'Đã thu',cancel:'Đã hủy'},q=norm(st.q.trim());
-  const list=orders.filter(o=>(st.ofilter==='all'||o.status===st.ofilter)&&(!q||norm(o.id+' '+(C(o.cid)?.name||o.name)).includes(q)));
-  const groups=new Map();list.slice(0,200).forEach(o=>{const k=dayStart(o.at);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(o)});
-  return `<div class="view"><div class="chips">${Object.entries(F).map(([k,v])=>`<button class="chip" data-of="${k}" aria-pressed="${k===st.ofilter}">${v}${k==='new'?` (${orders.filter(o=>o.status==='new').length})`:''}</button>`).join('')}</div>
+  const [from,to]=oRange();
+  const list=orders.filter(o=>o.at>=from&&o.at<to&&(st.ofilter==='all'||o.status===st.ofilter)&&(!q||norm(o.id+' '+(C(o.cid)?.name||o.name)).includes(q)));
+  const live=list.filter(o=>o.status!=='cancel'),rev=live.reduce((s,o)=>s+orderTotal(o),0),prof=live.reduce((s,o)=>s+o.items.reduce((a,i)=>a+(iPrice(i)-iCost(i))*i.qty,0)-(o.discount||0),0);
+  const groups=new Map();list.slice(0,st.op==='all'?200:2000).forEach(o=>{const k=dayStart(o.at);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(o)});
+  const P_={all:'Tất cả',day:'Ngày',week:'Tuần',month:'Tháng',custom:'Chọn ngày'};
+  return `<div class="view"><div class="seg" style="margin-bottom:10px">${Object.entries(P_).map(([k,v])=>`<button data-op="${k}" aria-pressed="${k===st.op}">${v}</button>`).join('')}</div>
+  ${st.op==='custom'?`<div class="row" style="gap:8px;margin-bottom:10px"><label class="field" style="flex:1;margin:0"><span class="hint" style="font-size:13px">Từ ngày</span><input type="date" id="oFrom" value="${isoD(st.oFrom||dayStart())}" max="${isoD(Date.now())}"></label><label class="field" style="flex:1;margin:0"><span class="hint" style="font-size:13px">Đến ngày</span><input type="date" id="oTo" value="${isoD(st.oTo||dayStart())}" max="${isoD(Date.now())}"></label></div>`
+   :st.op!=='all'?`<div class="month" style="margin-bottom:10px"><button data-onav="-1" aria-label="Trước">‹</button><label style="position:relative;font-weight:700;font-size:17px;text-align:center;flex:1;padding:8px 0">${oLabel(from,to)}<input type="${st.op==='month'?'month':'date'}" id="oPick" value="${st.op==='month'?isoD(from).slice(0,7):isoD(st.oAt)}" max="${st.op==='month'?isoD(Date.now()).slice(0,7):isoD(Date.now())}" style="position:absolute;inset:0;opacity:0;width:100%"></label><button data-onav="1" aria-label="Sau" ${to>Date.now()?'disabled style="opacity:.3"':''}>›</button></div>`:''}
+  ${st.op!=='all'?`<div class="tiles" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"><div class="tile"><div class="k">Doanh thu</div><div class="v big num">${fmt(rev)}</div></div><div class="tile"><div class="k">Tiền lời</div><div class="v big num inc">${fmt(prof)}</div></div><div class="tile"><div class="k">Số đơn</div><div class="v big num">${live.length}</div></div></div>`:''}
+  <div class="chips">${Object.entries(F).map(([k,v])=>`<button class="chip" data-of="${k}" aria-pressed="${k===st.ofilter}">${v}${k==='new'?` (${orders.filter(o=>o.status==='new').length})`:''}</button>`).join('')}</div>
   ${groups.size?[...groups].map(([k,os])=>{const sum=os.filter(o=>o.status!=='cancel').reduce((s,o)=>s+orderTotal(o),0);
     return `<div class="group-h row" style="margin-right:16px"><span>${k===dayStart()?'Hôm nay':new Date(k).toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit'})}</span><span class="num">${fmt(sum)}</span></div><div class="group">${os.map(orderCell).join('')}</div>`}).join(''):'<div class="empty">Chưa có đơn nào</div>'}</div>`;
 }
@@ -1225,7 +1244,7 @@ function route(){const h=location.hash.slice(1),v=VIEWS[h]?h:'shop';if(v!==st.vi
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-year],[data-thm],[data-delorder],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-style],[data-newprod],[data-restock],[data-go]');
+  const t=e.target.closest('[data-year],[data-thm],[data-delorder],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-op],[data-onav],[data-style],[data-newprod],[data-restock],[data-go]');
   if(!t)return;const d=t.dataset;
   if(d.mgr)openCatList(d.mgr);
   else if(d.catedit)openCatEditor(d.kind,d.catedit);
@@ -1256,6 +1275,8 @@ document.addEventListener('click',e=>{
   else if(d.smode){st.smode=d.smode;keepScroll(render)}
   else if(d.oreason){st.oreason=d.oreason;document.querySelectorAll('[data-oreason]').forEach(b=>b.setAttribute('aria-pressed',b===t))}
   else if(d.thm){settings.theme=d.thm;save();applyAccent();keepScroll(render)}
+  else if(d.op){st.op=d.op;if(d.op!=='custom')st.oAt=Date.now();keepScroll(render)}
+  else if(d.onav){const x=new Date(st.oAt),n=+d.onav;if(st.op==='day')x.setDate(x.getDate()+n);else if(st.op==='week')x.setDate(x.getDate()+7*n);else x.setMonth(x.getMonth()+n,1);if(x.getTime()<=Date.now()||n<0){st.oAt=Math.min(x.getTime(),Date.now());keepScroll(render)}}
   else if(d.accent){settings.accent=d.accent;if(curStyle()!=='none')settings.style='none';save();applyAccent();keepScroll(render)}
   else if(d.style&&t.closest('.styles')){settings.style=d.style;save();applyAccent();keepScroll(render)}
   else if('newprod' in d)openEditor(null);
@@ -1276,6 +1297,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-backup],[d
   if(b.dataset.backup!==undefined)backupFile();else if(b.dataset.install!==undefined)openInstall();else if(b.dataset.snaps!==undefined)openSnaps();
   else{settings[b.dataset.hide+'Hide']=Date.now()+(b.dataset.hide==='install'?3:2)*D;save();render()}});
 window.addEventListener('hashchange',route);
+document.addEventListener('change',e=>{const id=e.target.id,v=e.target.value;if(!v)return;
+  if(id==='oPick'){st.oAt=parseD(v);keepScroll(render)}else if(id==='oFrom'){st.oFrom=parseD(v);keepScroll(render)}else if(id==='oTo'){st.oTo=parseD(v);keepScroll(render)}});
 backfillBuys();applyAccent();route();boot().then(()=>{if(syncCfg)syncStart(syncCfg.code,'resume').catch(e=>{console.warn(e);setSync('error')})});
 </script>
 
