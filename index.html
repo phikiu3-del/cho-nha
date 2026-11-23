@@ -1023,10 +1023,12 @@ function openMove(key){const m=moves.find(x=>x.at+'_'+x.pid===key);if(!m)return;
   draw()}
 function openStockEdit(id){const p=P(id);if(!p)return;sheetMode='stk';
   const draw=()=>{openSheet('Sửa tồn kho',`<div style="display:flex;flex-direction:column;align-items:center;gap:6px">${photoBox(p)}<b>${esc(p.name)}</b><span class="hint">Đang ghi tồn ${p.stock} ${esc(p.unit||'cái')}</span></div>
-    <div class="field"><label for="sk-q">Tồn kho thực tế</label><input id="sk-q" type="number" inputmode="numeric" value="${Math.max(0,p.stock)}"><span class="msg"></span></div>`,
+    <div class="form-grid"><div class="field"><label for="sk-q">Tồn kho thực tế</label><input id="sk-q" type="number" inputmode="numeric" value="${Math.max(0,p.stock)}"><span class="msg"></span></div><div class="field"><label for="sk-p">Giá bán</label><input id="sk-p" inputmode="numeric" class="num money" value="${money(p.price)}" placeholder="0"></div></div>`,
     `<div class="row"><button class="btn ghost" data-edit="${p.id}">Sửa sản phẩm</button><button class="btn" id="skSave" style="flex:1">Lưu</button></div>`);
-    bindPhoto(p,draw);
-    $('#skSave').onclick=()=>{const v=Math.round(+$('#sk-q').value);if(!setErr('sk-q',$('#sk-q').value!==''&&v>=0?'':'Nhập số lượng'))return;const d=v-p.stock;if(!d){closeSheet();return}
+    bindPhoto(p,draw);document.querySelectorAll('#sheetBody .money').forEach(i=>i.oninput=()=>{i.value=money(unmoney(i.value))});
+    $('#skSave').onclick=()=>{const v=Math.round(+$('#sk-q').value);if(!setErr('sk-q',$('#sk-q').value!==''&&v>=0?'':'Nhập số lượng'))return;const d=v-p.stock,np=unmoney($('#sk-p').value);
+      if(np!==p.price){p.price=np;if(!d){save();closeSheet();keepScroll(render);toast(`Giá bán ${p.name}: ${fmt(np)}`);return}}
+      if(!d){closeSheet();return}
       let at=Date.now();while(moves.some(x=>x.at===at&&x.pid===p.id))at++;
       moves.push({at,pid:p.id,qty:d,cost:d<0?(p.cost||0):0,reason:'Kiểm kho'});p.stock=v;save();closeSheet();keepScroll(render);toast(`Đã sửa tồn ${p.name}: ${v}`)}};
   draw()}
