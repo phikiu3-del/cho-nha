@@ -455,6 +455,7 @@ const STATUS={new:['Ghi nợ','st-new'],ship:['Đang giao','st-ship'],done:['Đ�
 const PAY={cod:'Tiền mặt',bank:'Chuyển khoản',wallet:'Ví điện tử'};
 const iPrice=i=>i.price!=null?i.price:(P(i.id)?.price||0),iCost=i=>i.cost||P(i.id)?.cost||0;
 const orderTotal=o=>Math.max(0,o.items.reduce((s,i)=>s+iPrice(i)*i.qty,0)-(o.discount||0));
+const buyIn=(a,b=Infinity)=>moves.filter(m=>m.qty>0&&m.at>=a&&m.at<b).reduce((s,m)=>s+m.qty*(m.cost||0),0);
 const lossIn=(a,b=Infinity)=>moves.filter(m=>m.qty<0&&m.reason!=='Trả nhà cung cấp'&&m.at>=a&&m.at<b).reduce((s,m)=>s+(-m.qty)*(m.cost||0),0);
 const orderCost=o=>o.items.reduce((s,i)=>s+iCost(i)*i.qty,0);
 const unpaidOf=cid=>orders.filter(o=>o.cid===cid&&o.status==='new');
@@ -807,7 +808,7 @@ function rOverview(){
   const topP=Object.entries(sold).sort((a,b)=>b[1]-a[1]).slice(0,5),tmax=topP[0]?.[1]||1;
   const pays=['cod','bank','wallet'].map((k,i)=>({k,c:`var(--c${i+1})`,v:inR.filter(o=>o.pay===k).reduce((s,o)=>s+orderTotal(o),0)})),ptot=pays.reduce((s,p)=>s+p.v,0)||1;
   return `${rangeSeg()}
-  <div class="tiles"><div class="tile"><div class="k">Doanh thu</div><div class="v big num">${fmt(rev)}</div></div><div class="tile"><div class="k">Lời bán hàng</div><div class="v big num inc">${fmt(gross)}</div></div><div class="tile"><div class="k">Chi phí khác</div><div class="v big num exp">${fmt(exp)}</div>${loss?`<div class="s" style="font-size:12px;color:var(--muted)">gồm hao hụt ${short(loss)}</div>`:''}</div><div class="tile"><div class="k">Lời thực</div><div class="v big num ${gross-exp>=0?'inc':'exp'}">${fmt(gross-exp)}</div></div></div>
+  <div class="tiles"><div class="tile"><div class="k">Doanh thu</div><div class="v big num">${fmt(rev)}</div></div><div class="tile"><div class="k">Tiền nhập hàng</div><div class="v big num exp">${fmt(buyIn(from))}</div></div><div class="tile"><div class="k">Lời bán hàng</div><div class="v big num inc">${fmt(gross)}</div></div><div class="tile"><div class="k">Chi phí khác</div><div class="v big num exp">${fmt(exp)}</div>${loss?`<div class="s" style="font-size:12px;color:var(--muted)">gồm hao hụt ${short(loss)}</div>`:''}</div><div class="tile" style="grid-column:1/-1"><div class="k">Lời thực</div><div class="v big num ${gross-exp>=0?'inc':'exp'}">${fmt(gross-exp)}</div></div></div>
   <div class="panel"><h3>Doanh thu theo ngày</h3><div class="chart">${svg}</div></div>
   <div class="panel"><h3>Hình thức thanh toán</h3><div class="split">${pays.filter(p=>p.v).map(p=>`<i style="width:${p.v/ptot*100}%;background:${p.c}"></i>`).join('')}</div>
    <div class="legend">${pays.map(p=>`<div><span class="sw" style="background:${p.c}"></span><span class="n">${PAY[p.k]}</span><span class="num hint">${fmt(p.v)}</span><b class="num">${Math.round(p.v/ptot*100)}%</b></div>`).join('')}</div></div>
@@ -952,7 +953,7 @@ function openEditor(id,pre){
       if(!(f.price>0)){toast('Nhập giá bán');$('#p-price').focus();return}
       if(f.code&&products.some(x=>x!==ex&&x.code===f.code)){toast('Mã vạch này đã dùng cho sản phẩm khác');return}
       const d={code:f.code||undefined,name:f.name.trim(),emoji:f.emoji||PC(f.cat)?.icon||'🛒',img:f.img||'',cat:f.cat,price:f.price,cost:f.cost,old:f.old>f.price?f.old:undefined,stock:f.service?0:f.stock,unit:f.unit,desc:f.desc.trim(),service:f.service};
-      if(ex)Object.assign(ex,d);else products.unshift({id:Math.max(0,...products.map(x=>x.id))+1,sold:0,...d});
+      if(ex)Object.assign(ex,d);else{const nid=Math.max(0,...products.map(x=>x.id))+1;products.unshift({id:nid,sold:0,...d});if(!d.service&&d.stock>0&&d.cost>0)moves.push({at:Date.now(),pid:nid,qty:d.stock,cost:d.cost})}
       if(!save()){toast('Bộ nhớ đầy, thử ảnh nhỏ hơn hoặc bỏ bớt ảnh');return}
       closeSheet();render();renderBill();toast(ex?'Đã lưu thay đổi':'Đã thêm '+d.name)};
     $('#pSave').onclick=doSave;if($('#pSaveTop'))$('#pSaveTop').onclick=doSave;
@@ -981,7 +982,7 @@ function rYear(){
   const best=cur.reduce((a,b)=>b.rev>a.rev?b:a,cur[0]);
   return `${rangeSeg()}
   <div class="month"><button data-year="-1" aria-label="Năm trước">‹</button><strong>Năm ${Y}</strong><button data-year="1" aria-label="Năm sau" ${Y>=new Date().getFullYear()?'disabled style="opacity:.3"':''}>›</button></div>
-  <div class="tiles"><div class="tile"><div class="k">Doanh thu năm</div><div class="v big num">${short(rev)}</div>${diff!==null?`<div class="${diff>=0?'inc':'exp'}" style="font-size:13px;font-weight:600">${diff>=0?'▲':'▼'} ${Math.abs(diff)}% so với ${Y-1}</div>`:''}</div><div class="tile"><div class="k">Lời bán hàng</div><div class="v big num inc">${short(gross)}</div></div><div class="tile"><div class="k">Chi phí khác</div><div class="v big num exp">${short(exp)}</div></div><div class="tile"><div class="k">Lời thực</div><div class="v big num">${short(gross-exp)}</div></div></div>
+  <div class="tiles"><div class="tile"><div class="k">Doanh thu năm</div><div class="v big num">${short(rev)}</div>${diff!==null?`<div class="${diff>=0?'inc':'exp'}" style="font-size:13px;font-weight:600">${diff>=0?'▲':'▼'} ${Math.abs(diff)}% so với ${Y-1}</div>`:''}</div><div class="tile"><div class="k">Tiền nhập hàng</div><div class="v big num exp">${short(buyIn(new Date(Y,0,1).getTime(),new Date(Y+1,0,1).getTime()))}</div></div><div class="tile"><div class="k">Lời bán hàng</div><div class="v big num inc">${short(gross)}</div></div><div class="tile"><div class="k">Chi phí khác</div><div class="v big num exp">${short(exp)}</div></div><div class="tile" style="grid-column:1/-1"><div class="k">Lời thực</div><div class="v big num">${short(gross-exp)}</div></div></div>
   <div class="panel"><div class="row"><h3>Doanh thu 12 tháng</h3></div>
    <div class="legend" style="flex-direction:row;gap:16px"><div><span class="sw" style="background:var(--brand)"></span>${Y}</div><div><span class="sw" style="background:var(--prev)"></span>${Y-1}</div></div>
    <div class="chart">${svg}</div>${best.rev?`<span class="hint">Tháng bán tốt nhất: tháng ${best.m+1}, ${fmt(best.rev)}</span>`:''}</div>
