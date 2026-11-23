@@ -401,6 +401,12 @@ const idb={p:null,ok:false,open(){return this.p||(this.p=new Promise((res,rej)=>
   async get(k){const db=await this.open();return new Promise((res,rej)=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})},
   async set(k,v){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}};
 idb.open().catch(()=>{});
+function backfillBuys(){let ch=false;
+  products.forEach(p=>{if(p.service||!(p.cost>0)||moves.some(m=>m.pid===p.id&&m.qty>0))return;
+    const out=moves.filter(m=>m.pid===p.id&&m.qty<0).reduce((a,m)=>a-m.qty,0),qty=Math.max(0,p.stock)+(p.sold||0)+out;if(!qty)return;
+    const first=orders.filter(o=>o.items.some(i=>i.id===p.id)).reduce((a,o)=>Math.min(a,o.at),Date.now());
+    moves.push({at:first-1000,pid:p.id,qty,cost:p.cost,auto:true});ch=true});
+  if(ch)save()}
 function hasData(){return products.length||orders.length||customers.length||cash.length||pcats.length||debtPays.length}
 function snapshot(){return structuredClone({app:'cho-nha',schema:SCHEMA,at:Date.now(),pcats,ccats,products,orders,customers,cash,moves,debtPays,settings})}
 function migrate(d){d=d||{};d.schema=d.schema||1;/* nâng cấp cấu trúc dữ liệu các phiên bản sau đặt ở đây, không bao giờ xóa dữ liệu cũ */
@@ -409,7 +415,7 @@ function migrate(d){d=d||{};d.schema=d.schema||1;/* nâng cấp cấu trúc dữ
   for(const c of SYS_CCATS())if(!d.ccats.some(x=>x.name===c.name))d.ccats.push(c);
   d.settings=Object.assign({shop:'ODin Goldfish',accent:'green',bin:'',acc:'',accName:''},d.settings||{});return d}
 function validSnap(d){return d&&typeof d==='object'&&d.app==='cho-nha'&&Array.isArray(d.products)&&Array.isArray(d.orders)}
-function applySnap(d){d=migrate(structuredClone(d));({pcats,ccats,products,orders,customers,cash,moves,debtPays,settings}=d);cart={};discount=0;st.cat='Tất cả';save();applyAccent();render();renderBill()}
+function applySnap(d){d=migrate(structuredClone(d));({pcats,ccats,products,orders,customers,cash,moves,debtPays,settings}=d);backfillBuys();cart={};discount=0;st.cat='Tất cả';save();applyAccent();render();renderBill()}
 function countsOf(d){return `${d.products.length} sản phẩm · ${d.orders.length} đơn · ${d.customers.length} khách`}
 let lsFull=false,mirrorT;
 function save(){const o={pcats,ccats,products,orders,customers,cash,moves,debtPays,settings,cart,discount};let ok=true;for(const k in o)if(store.set(k,o[k])===false)ok=false;
@@ -953,7 +959,7 @@ function openEditor(id,pre){
       if(!(f.price>0)){toast('Nhập giá bán');$('#p-price').focus();return}
       if(f.code&&products.some(x=>x!==ex&&x.code===f.code)){toast('Mã vạch này đã dùng cho sản phẩm khác');return}
       const d={code:f.code||undefined,name:f.name.trim(),emoji:f.emoji||PC(f.cat)?.icon||'🛒',img:f.img||'',cat:f.cat,price:f.price,cost:f.cost,old:f.old>f.price?f.old:undefined,stock:f.service?0:f.stock,unit:f.unit,desc:f.desc.trim(),service:f.service};
-      if(ex)Object.assign(ex,d);else{const nid=Math.max(0,...products.map(x=>x.id))+1;products.unshift({id:nid,sold:0,...d});if(!d.service&&d.stock>0&&d.cost>0)moves.push({at:Date.now(),pid:nid,qty:d.stock,cost:d.cost})}
+      if(ex){const add=!d.service&&d.stock>ex.stock&&d.cost>0?d.stock-Math.max(0,ex.stock):0;Object.assign(ex,d);if(add>0)moves.push({at:Date.now(),pid:ex.id,qty:add,cost:d.cost})}else{const nid=Math.max(0,...products.map(x=>x.id))+1;products.unshift({id:nid,sold:0,...d});if(!d.service&&d.stock>0&&d.cost>0)moves.push({at:Date.now(),pid:nid,qty:d.stock,cost:d.cost})}
       if(!save()){toast('Bộ nhớ đầy, thử ảnh nhỏ hơn hoặc bỏ bớt ảnh');return}
       closeSheet();render();renderBill();toast(ex?'Đã lưu thay đổi':'Đã thêm '+d.name)};
     $('#pSave').onclick=doSave;if($('#pSaveTop'))$('#pSaveTop').onclick=doSave;
@@ -1102,7 +1108,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-backup],[d
   if(b.dataset.backup!==undefined)backupFile();else if(b.dataset.install!==undefined)openInstall();else if(b.dataset.snaps!==undefined)openSnaps();
   else{settings[b.dataset.hide+'Hide']=Date.now()+(b.dataset.hide==='install'?3:2)*D;save();render()}});
 window.addEventListener('hashchange',route);
-applyAccent();route();boot();
+backfillBuys();applyAccent();route();boot();
 </script>
 
 <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script>
