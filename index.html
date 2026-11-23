@@ -136,6 +136,21 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .thumb .out{position:absolute;inset:auto 6px 6px;background:rgba(0,0,0,.62);color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:2px 4px;text-align:center}
 .thumb .out.warn{background:var(--warn);}
 .card .body{padding:7px 9px 9px;display:flex;flex-direction:column;gap:2px}
+.card .sline{display:none}
+.grid.rows .gprice{display:none}
+.grid.rows{display:flex;flex-direction:column;gap:8px}
+.grid.rows .card .tap{flex-direction:row;align-items:center;gap:12px;padding:8px 48px 8px 8px}
+.grid.rows .thumb{width:64px;height:64px;aspect-ratio:auto;border-radius:12px;flex:none}
+.grid.rows .pemo{font-size:32px}
+.grid.rows .thumb .out{display:none}
+.grid.rows .body{padding:0;flex:1;min-width:0;gap:3px}
+.grid.rows .name{min-height:0;font-size:16px}
+.grid.rows .price{font-size:16px}
+.grid.rows .sline{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.grid.rows .stk{font-size:13px;color:var(--muted)}.grid.rows .stk.low{color:var(--warn);font-weight:600}.grid.rows .stk.zero{color:var(--expense);font-weight:600}
+.grid.rows .more{top:50%;bottom:auto;right:8px;transform:translateY(-50%)}
+.grid.rows .minus{top:auto;bottom:6px;left:6px;width:26px;height:26px;font-size:18px}
+.grid.rows .qty{top:2px;right:auto;left:2px}
 .card .name{font-weight:600;font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
 .price{font-weight:700;font-size:15px;font-family:var(--f-num)}
 .qty{position:absolute;top:-6px;right:-6px;min-width:26px;height:26px;border-radius:13px;background:var(--brand);color:var(--brand-fg);font-weight:800;font-size:14px;display:grid;place-items:center;padding:0 6px;box-shadow:0 2px 6px rgba(0,0,0,.2);pointer-events:none}
@@ -684,7 +699,7 @@ function cardHTML(p){
   return `<article class="card ${n?'in':''} ${out?'off':''}">
   <button class="tap" data-add="${p.id}" ${out?'aria-disabled="true"':''} aria-label="Thêm ${esc(p.name)}">
    <div class="thumb" style="${tint(p)}">${pic(p)}${pct?`<span class="tag">-${pct}%</span>`:''}${out?'<span class="out">Hết hàng</span>':''}${!out&&!p.service&&p.stock<5?`<span class="out warn">Còn ${p.stock}</span>`:''}</div>
-   <div class="body"><span class="name">${esc(p.name)}</span><span class="price num">${fmt(p.price)}</span></div>
+   <div class="body"><span class="name">${esc(p.name)}</span><span class="price num gprice">${fmt(p.price)}</span><span class="sline"><span class="price num">${fmt(p.price)}</span>${p.service?'<span class="stk">Dịch vụ</span>':`<span class="stk ${out?'zero':p.stock<5?'low':''}">${out?'Hết hàng':'Còn '+p.stock+' '+esc(p.unit||'cái')}</span>`}</span></div>
   </button>
   ${n?`<span class="qty num">${n}</span><button class="minus" data-dec="${p.id}" aria-label="Bớt một">−</button>`:''}
   <button class="more" data-open="${p.id}" aria-label="Chi tiết ${esc(p.name)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></article>`;
@@ -700,7 +715,7 @@ function vShop(){
   <div class="chips" role="toolbar" aria-label="Danh mục"><button class="chip" aria-pressed="${st.cat==='Tất cả'}" data-cat="Tất cả">Tất cả</button>${pcats.map(c=>`<button class="chip" aria-pressed="${c.name===st.cat}" data-cat="${esc(c.name)}">${c.icon} ${esc(c.name)}</button>`).join('')}<button class="chip" data-mgr="p" style="color:var(--brand)">＋ Danh mục</button></div>
   ${products.length?`<div class="row hint" style="margin:-6px 4px"><span>Chạm sản phẩm để thêm vào đơn</span><button class="link" data-newprod style="font-size:14px">＋ Sản phẩm mới</button></div>`:''}
   ${!products.length?`<div class="first"><div class="first-ic">🛍️</div><h2>Chưa có sản phẩm nào</h2><p>Thêm sản phẩm đầu tiên, kèm ảnh chụp hoặc ảnh có sẵn trong điện thoại. Sau đó chạm vào sản phẩm để bán.</p><button class="btn" data-newprod style="width:100%">＋ Thêm sản phẩm đầu tiên</button>${!pcats.length?`<button class="btn ghost" data-mgr="p" style="width:100%">Tạo danh mục trước (không bắt buộc)</button>`:''}</div>`
-   :`<div class="grid">${list.length?list.map(cardHTML).join(''):`<div class="empty" style="grid-column:1/-1">${st.q?`Không tìm thấy “${esc(st.q)}”.`:`Danh mục “${esc(st.cat)}” chưa có sản phẩm.`}<br><button class="btn sm" data-newprod style="margin-top:12px">＋ Thêm sản phẩm${st.q?'':' vào đây'}</button></div>`}</div>`}</div>`;
+   :`<div class="grid rows">${list.length?list.map(cardHTML).join(''):`<div class="empty" style="grid-column:1/-1">${st.q?`Không tìm thấy “${esc(st.q)}”.`:`Danh mục “${esc(st.cat)}” chưa có sản phẩm.`}<br><button class="btn sm" data-newprod style="margin-top:12px">＋ Thêm sản phẩm${st.q?'':' vào đây'}</button></div>`}</div>`}</div>`;
 }
 function setQty(id,q){
   const p=P(id);if(!p)return;
