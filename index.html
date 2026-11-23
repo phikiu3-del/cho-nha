@@ -707,7 +707,7 @@ function openPay(){
       <div class="chips" style="margin-top:4px">${quick.map(v=>`<button type="button" class="chip" data-cash="${v}">${v===t.total?'Vừa đủ':fmt(v)}</button>`).join('')}</div>
       <div class="hint" id="change" style="padding-left:4px"></div></div>
     <div id="payQR" hidden>${qrHTML(t.total,'Thanh toan don hang')}</div>
-    <div class="field"><label for="f-cust">Khách hàng</label><input id="f-cust" list="custList" placeholder="Khách lẻ (để trống)" autocomplete="off"><datalist id="custList">${customers.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist></div>
+    <div class="field"><label for="f-cust">Khách hàng</label><input id="f-cust" placeholder="Khách lẻ" autocomplete="off"><div class="chips" id="custPick" style="margin-top:4px"></div></div>
     <label class="check"><input type="checkbox" id="f-debt"> Ghi nợ, khách trả sau</label>
     <div class="field"><label for="f-note">Ghi chú</label><input id="f-note" placeholder="Không bắt buộc"></div>`,
     `<div class="row"><button class="btn ghost" id="back">Quay lại</button><button class="btn" id="place" style="flex:1">Hoàn tất đơn</button></div>`);
@@ -717,6 +717,15 @@ function openPay(){
   $('#sheetBody').querySelectorAll('[data-cash]').forEach(b=>b.onclick=()=>{cashIn.value=b.dataset.cash;chg()});
   $('#sheetBody').querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>{pay=b.dataset.pay;$('#sheetBody').querySelectorAll('[data-pay]').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#payCash').hidden=pay!=='cod';$('#payQR').hidden=pay!=='bank'});
   $('#back').onclick=openBill;
+  const last={};orders.forEach(o=>{if(o.cid&&!(last[o.cid]>o.at))last[o.cid]=o.at});
+  const recent=[...customers].sort((a,b)=>(last[b.id]||0)-(last[a.id]||0)||a.name.localeCompare(b.name,'vi'));
+  const custIn=$('#f-cust');
+  const pick=()=>{const q=norm(custIn.value.trim());const sel=recent.find(c=>norm(c.name)===q);
+    const list=(sel?recent:recent.filter(c=>!q||norm(c.name).includes(q)||(c.phone||'').replace(/\D/g,'').includes(q.replace(/\D/g,'')||'#'))).slice(0,30);
+    $('#custPick').hidden=!list.length;
+    $('#custPick').innerHTML=list.map(c=>{const d=debtOf(c.id);return `<button type="button" class="chip" data-cpick="${c.id}" aria-pressed="${c===sel}">${esc(c.name)}${d>0?` <span class="${c===sel?'':'exp'}" style="font-size:12px">nợ ${fmt(d)}</span>`:''}</button>`}).join('');
+    $('#custPick').querySelectorAll('[data-cpick]').forEach(b=>b.onclick=()=>{const c=C(+b.dataset.cpick)||customers.find(x=>String(x.id)===b.dataset.cpick);if(!c)return;custIn.value=custIn.value.trim()&&norm(custIn.value.trim())===norm(c.name)?'':c.name;pick()})};
+  custIn.oninput=pick;pick();
   $('#place').onclick=()=>{
     const debt=$('#f-debt').checked,cname=$('#f-cust').value.trim();
     if(debt&&!cname){toast('Ghi nợ cần tên khách hàng');$('#f-cust').focus();return}
