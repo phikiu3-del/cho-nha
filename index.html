@@ -660,7 +660,7 @@ function openOrder(id){
    <div class="cell"><span class="grow">Thời gian</span><span class="r">${new Date(o.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'})}</span></div>
    ${o.note?`<div class="cell"><span class="grow">Ghi chú</span><span class="r">${esc(o.note)}</span></div>`:''}</div>
    <div class="field"><label>Đổi trạng thái</label><div class="seg">${Object.entries(STATUS).map(([k,v])=>`<button data-setst="${k}" data-oid="${o.id}" aria-pressed="${k===o.status}">${v[0]}</button>`).join('')}</div></div>
-   ${o.status==='new'?qrHTML(orderTotal(o),'Thanh toan '+o.id):''}`,`<button class="btn ghost" data-share="${o.id}">📤 Gửi hóa đơn cho khách</button>`);
+   ${o.status==='new'?qrHTML(orderTotal(o),'Thanh toan '+o.id):''}`,`<div class="row"><button class="btn danger" data-delorder="${o.id}">Xóa đơn</button><button class="btn ghost" data-share="${o.id}" style="flex:1">📤 Gửi hóa đơn</button></div>`);
 }
 
 /* ---------- CUSTOMERS ---------- */
@@ -883,6 +883,19 @@ function openPromo(id){const ex=settings.promos.find(x=>x.id===id);let kind=ex?.
      if(!setErr('pm-n',name?'':'Nhập tên'))return;if(!setErr('pm-v',v>0&&(kind!=='pct'||v<=100)?'':'Nhập mức giảm hợp lệ'))return;
      const d={name,kind,value:v,min};if(ex)Object.assign(ex,d);else settings.promos.push({id:Date.now(),...d});save();closeSheet();render();toast('Đã lưu khuyến mãi')};
    if(ex)$('#pmDel').onclick=()=>{settings.promos=settings.promos.filter(x=>x!==ex);if(promoId===ex.id)setPromo(null);save();closeSheet();render();toast('Đã xóa khuyến mãi')}};draw()}
+function deleteProduct(ex){
+  const nOrd=orders.filter(o=>o.items.some(i=>i.id===ex.id)).length,nMov=moves.filter(m=>m.pid===ex.id).length;
+  const drop=all=>{products=products.filter(x=>x!==ex);delete cart[ex.id];
+    if(all){orders.forEach(o=>{o.items=o.items.filter(i=>i.id!==ex.id)});orders=orders.filter(o=>o.items.length);moves=moves.filter(m=>m.pid!==ex.id)}
+    save();closeSheet();render();renderBill();toast(all?`Đã xóa ${ex.name} và lịch sử bán`:`Đã xóa ${ex.name}`)};
+  if(!nOrd&&!nMov){confirmSheet(`Xóa “${esc(ex.name)}”?`,'Xóa',()=>drop(false));return}
+  sheetMode='pdel';openSheet('Xóa sản phẩm',`<p style="margin:8px 4px;font-size:17px">“${esc(ex.name)}” đã có ${nOrd} đơn bán${nMov?` và ${nMov} lần nhập xuất`:''}.</p>
+   <div class="group"><button class="cell" id="pdAll"><span class="ic" style="background:color-mix(in srgb,var(--expense) 14%,transparent)">🗑️</span><span class="grow"><span class="t exp" style="display:block">Xóa cả lịch sử bán</span><span class="s" style="display:block">Doanh thu, lời lỗ, đơn hàng của món này cũng mất</span></span></button>
+   <button class="cell" id="pdOnly"><span class="ic" style="background:var(--brand-soft)">📦</span><span class="grow"><span class="t" style="display:block">Chỉ xóa sản phẩm</span><span class="s" style="display:block">Giữ lại các đơn đã bán trong báo cáo</span></span></button></div>`,`<button class="btn ghost" data-close>Hủy</button>`);
+  $('#pdAll').onclick=()=>drop(true);$('#pdOnly').onclick=()=>drop(false)}
+function deleteOrder(o){confirmSheet(`Xóa đơn ${o.id} (${fmt(orderTotal(o))})? Số lượng hàng sẽ được trả lại kho.`,'Xóa đơn',()=>{
+  o.items.forEach(i=>{const p=P(i.id);if(p){if(!p.service)p.stock+=i.qty;p.sold=Math.max(0,(p.sold||0)-i.qty)}});
+  orders=orders.filter(x=>x!==o);save();render();renderBill();toast('Đã xóa đơn '+o.id)})}
 function confirmSheet(text,label,fn){sheetMode='confirm';openSheet('Xác nhận',`<p style="margin:8px 4px;font-size:17px">${text}</p>`,`<div class="row"><button class="btn ghost" data-close style="flex:1">Hủy</button><button class="btn danger" id="cfOk" style="flex:1">${label}</button></div>`);$('#cfOk').onclick=()=>{closeSheet();fn()}}
 const OUT_REASONS=['Chết, hỏng','Dùng nội bộ','Tặng khách','Trả nhà cung cấp','Khác'];
 const UNITS=['cái','kg','gói','hộp','chai','lon','thùng','bó','phần','lượt'];
@@ -943,7 +956,7 @@ function openEditor(id,pre){
       if(!save()){toast('Bộ nhớ đầy, thử ảnh nhỏ hơn hoặc bỏ bớt ảnh');return}
       closeSheet();render();renderBill();toast(ex?'Đã lưu thay đổi':'Đã thêm '+d.name)};
     $('#pSave').onclick=doSave;if($('#pSaveTop'))$('#pSaveTop').onclick=doSave;
-    if(ex)$('#pDel').onclick=()=>confirmSheet(`Xóa “${esc(ex.name)}”? Đơn cũ vẫn giữ nguyên.`,'Xóa',()=>{products=products.filter(x=>x!==ex);delete cart[ex.id];save();render();renderBill();toast('Đã xóa')});
+    if(ex)$('#pDel').onclick=()=>deleteProduct(ex);
   };draw();
 }
 
@@ -1038,7 +1051,7 @@ function route(){const h=location.hash.slice(1),v=VIEWS[h]?h:'shop';if(v!==st.vi
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-year],[data-thm],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-newprod],[data-restock],[data-go]');
+  const t=e.target.closest('[data-year],[data-thm],[data-delorder],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-newprod],[data-restock],[data-go]');
   if(!t)return;const d=t.dataset;
   if(d.mgr)openCatList(d.mgr);
   else if(d.catedit)openCatEditor(d.kind,d.catedit);
@@ -1063,6 +1076,7 @@ document.addEventListener('click',e=>{
   else if(d.rt){st.rtab=d.rt;render()}
   else if(d.range){st.range=d.range==='year'?'year':+d.range;keepScroll(render)}
   else if(d.year){st.year=(st.year||new Date().getFullYear())+ +d.year;keepScroll(render)}
+  else if(d.delorder){const o=orders.find(x=>x.id===d.delorder);if(o)deleteOrder(o)}
   else if(d.share){const o=orders.find(x=>x.id===d.share);if(o)shareText(receiptText(o),'Hóa đơn '+o.id)}
   else if(d.promoedit!==undefined){openPromo(+d.promoedit||null)}
   else if(d.smode){st.smode=d.smode;keepScroll(render)}
