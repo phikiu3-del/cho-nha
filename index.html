@@ -172,6 +172,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .scan{position:relative;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:4/3}.scan video{width:100%;height:100%;object-fit:cover;display:block}.scan-frame{position:absolute;inset:22% 12%;border:3px solid #fff;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
 .scan-btn{border:0;background:var(--brand-soft);color:var(--brand);width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none;margin-left:8px}
 .contact{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.contact a,.contact button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:76px;padding:8px 10px;border-radius:14px;background:var(--brand-soft);color:var(--brand);font-weight:600;font-size:13px;text-decoration:none;border:0;font-size:20px}.contact span{font-size:12px}
+input::placeholder,textarea::placeholder{font-weight:400;color:var(--muted);opacity:.7}
 .notice{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:16px;padding:12px 10px 12px 12px;box-shadow:var(--card-shadow)}
 .notice .grow{display:flex;flex-direction:column;gap:2px;min-width:0}.notice b{font-size:15px}.notice span:not(.ic){font-size:13px;color:var(--muted);line-height:1.3}
 .notice .btn.sm{height:auto;padding:8px 12px;font-size:14px;min-height:0;width:auto;flex-shrink:0}.notice .x{border:0;background:none;color:var(--muted);font-size:15px;padding:6px;flex-shrink:0}
@@ -609,7 +610,7 @@ function openPay(){
       <div class="chips" style="margin-top:4px">${quick.map(v=>`<button type="button" class="chip" data-cash="${v}">${v===t.total?'Vừa đủ':fmt(v)}</button>`).join('')}</div>
       <div class="hint" id="change" style="padding-left:4px"></div></div>
     <div id="payQR" hidden>${qrHTML(t.total,'Thanh toan don hang')}</div>
-    <div class="field"><label for="f-cust">Khách hàng</label><input id="f-cust" list="custList" placeholder="Khách lẻ (để trống)" autocomplete="off"><datalist id="custList">${customers.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist><span class="hint" style="padding-left:4px">Gõ tên mới để lưu khách. Mỗi 10.000₫ được 1 điểm.</span></div>
+    <div class="field"><label for="f-cust">Khách hàng</label><input id="f-cust" list="custList" placeholder="Khách lẻ (để trống)" autocomplete="off"><datalist id="custList">${customers.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist></div>
     <label class="check"><input type="checkbox" id="f-debt"> Ghi nợ, khách trả sau</label>
     <div class="field"><label for="f-note">Ghi chú</label><input id="f-note" placeholder="Không bắt buộc"></div>`,
     `<div class="row"><button class="btn ghost" id="back">Quay lại</button><button class="btn" id="place" style="flex:1">Hoàn tất đơn</button></div>`);
@@ -690,7 +691,7 @@ function remindDebt(c,debt){
   sheetMode='remind';const ph=(c.phone||'').replace(/[^0-9+]/g,'');
   openSheet('Nhắc nợ',`<div class="field"><label for="rm-t">Nội dung tin nhắn</label><textarea id="rm-t" rows="6" style="font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit;resize:vertical">${esc(msg)}</textarea></div>
    <div class="contact" style="margin-top:4px">${ph?`<a id="rmSms" href="sms:${ph}&body=${encodeURIComponent(msg)}">💬<span>Gửi SMS</span></a>`:''}<button id="rmZalo">🟦<span>Chép rồi mở Zalo</span></button><button id="rmShare">📤<span>Gửi qua app khác</span></button></div>
-   ${ph?'':'<p class="hint" style="margin:0 4px">Thêm số điện thoại cho khách để gửi SMS nhanh.</p>'}`);
+   ${ph?'':''}`);
   const txt=()=>$('#rm-t').value;
   $('#rm-t').oninput=()=>{if($('#rmSms'))$('#rmSms').href=`sms:${ph}&body=${encodeURIComponent(txt())}`};
   $('#rmZalo').onclick=async()=>{await copyText(txt());toast('Đã chép tin nhắn, dán vào Zalo');setTimeout(()=>{location.href=ph?`https://zalo.me/${ph.replace('+','')}`:'https://zalo.me'},500)};
@@ -744,13 +745,12 @@ function vCash(){
   return `<div class="view">
    <div class="month"><button data-mon="-1" aria-label="Tháng trước">‹</button><strong>Tháng ${mo+1}/${y}</strong><button data-mon="1" aria-label="Tháng sau">›</button></div>
    <div class="tiles" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="tile"><div class="k">Thu</div><div class="v big num inc" style="font-size:clamp(17px,5vw,24px)">${short(tin)}</div></div><div class="tile"><div class="k">Chi</div><div class="v big num exp" style="font-size:clamp(17px,5vw,24px)">${short(tout)}</div></div><div class="tile"><div class="k">Còn lại</div><div class="v big num" style="font-size:clamp(17px,5vw,24px)">${short(tin-tout)}</div></div></div>
-   <p class="hint" style="margin:-6px 4px 0">Tiền bán hàng, thu nợ và nhập hàng tự ghi vào đây. Anh chỉ cần bấm <b>＋</b> để ghi các khoản khác như tiền điện, mặt bằng, thức ăn cá.</p>
    <div class="cal">${cal}</div>
    <div class="group-h row" style="margin-right:16px"><span>${new Date(st.day).toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'numeric'})}</span><span class="num"><span class="inc">+${short(dIn)}</span> <span class="exp">−${short(dOut)}</span></span></div>
    <div class="group">${dayE.length?dayE.map(e=>{const cc=CC(e.cat),tag=e.manual?'button':'div';
      return `<${tag} ${e.manual?`data-cashedit="${e.id}"`:''} class="cell">${icBox(cc,44)}<div class="grow"><div class="t">${esc(e.cat)}</div><div class="s">${esc(e.note||'')}${e.manual?'':' · tự động'}</div></div><div class="r big num ${e.type==='in'?'inc':'exp'}">${e.type==='in'?'+':'−'}${fmt(e.amount)}</div></${tag}>`}).join(''):'<div class="empty">Ngày này chưa có khoản nào. Bấm + để thêm.</div>'}</div>
    <div class="panel"><div class="row"><h3>Chi tiêu theo hạng mục</h3><button class="link" data-mgr="out" style="font-size:14px">Sửa hạng mục</button></div>${cl.length?`<div class="donut-wrap">${donut(cl,tout)}<div class="legend">${cl.map(x=>`<div><span class="sw" style="background:${x.col}"></span><span class="n">${x.ic} ${x.n}</span><span class="num hint">${short(x.v)}</span><b class="num">${Math.round(x.v/tout*100)}%</b></div>`).join('')}</div></div>`:'<span class="hint">Tháng này chưa có khoản chi.</span>'}</div>
-   <p class="hint" style="margin:0 4px">Đơn đã thu tiền, tiền thu nợ và tiền nhập hàng được ghi tự động.</p></div>`;
+   </div>`;
 }
 function donut(items,total){
   const R=56,c=2*Math.PI*R,gap=items.length>1?2:0;let off=0;
@@ -808,15 +808,14 @@ function rOverview(){
   const pays=['cod','bank','wallet'].map((k,i)=>({k,c:`var(--c${i+1})`,v:inR.filter(o=>o.pay===k).reduce((s,o)=>s+orderTotal(o),0)})),ptot=pays.reduce((s,p)=>s+p.v,0)||1;
   return `${rangeSeg()}
   <div class="tiles"><div class="tile"><div class="k">Doanh thu</div><div class="v big num">${fmt(rev)}</div></div><div class="tile"><div class="k">Lời bán hàng</div><div class="v big num inc">${fmt(gross)}</div></div><div class="tile"><div class="k">Chi phí khác</div><div class="v big num exp">${fmt(exp)}</div>${loss?`<div class="s" style="font-size:12px;color:var(--muted)">gồm hao hụt ${short(loss)}</div>`:''}</div><div class="tile"><div class="k">Lời thực</div><div class="v big num ${gross-exp>=0?'inc':'exp'}">${fmt(gross-exp)}</div></div></div>
-  <p class="hint" style="margin:-4px 4px 0">Lời bán hàng = tiền bán − giá nhập của hàng đã bán. Lời thực = lời bán hàng − chi phí khác ghi ở Thu chi (điện, mặt bằng, thức ăn…). Tiền nhập hàng không trừ thêm lần nữa.</p>
-  <div class="panel"><h3>Doanh thu theo ngày</h3><span class="hint" style="margin-top:-6px">Chạm vào cột để xem. Cột vàng là hôm nay.</span><div class="chart">${svg}</div></div>
+  <div class="panel"><h3>Doanh thu theo ngày</h3><div class="chart">${svg}</div></div>
   <div class="panel"><h3>Hình thức thanh toán</h3><div class="split">${pays.filter(p=>p.v).map(p=>`<i style="width:${p.v/ptot*100}%;background:${p.c}"></i>`).join('')}</div>
    <div class="legend">${pays.map(p=>`<div><span class="sw" style="background:${p.c}"></span><span class="n">${PAY[p.k]}</span><span class="num hint">${fmt(p.v)}</span><b class="num">${Math.round(p.v/ptot*100)}%</b></div>`).join('')}</div></div>
   <div class="panel"><h3>Bán chạy nhất</h3><div class="hbar">${topP.map(([id,v])=>`<span class="nm">${P(+id).emoji} ${esc(P(+id).name)}</span><span class="num">${fmt(v)}</span><div class="track"><i style="width:${v/tmax*100}%"></i></div>`).join('')||'<span class="hint">Chưa có dữ liệu</span>'}</div></div>`;
 }
 function rProducts(){
   const noCost=products.filter(p=>!p.cost&&!p.service).length;
-  return `${noCost?`<div class="notice warn"><span class="ic" style="background:color-mix(in srgb,var(--expense) 14%,transparent)">⚠️</span><div class="grow"><b>${noCost} sản phẩm chưa có giá nhập</b><span>Chạm vào từng sản phẩm bên dưới để thêm, khi đó lời lỗ mới đúng.</span></div></div>`:''}<button class="btn" data-newprod>+ Thêm sản phẩm hoặc dịch vụ</button>
+  return `${noCost?`<div class="notice warn"><span class="ic" style="background:color-mix(in srgb,var(--expense) 14%,transparent)">⚠️</span><div class="grow"><b>${noCost} sản phẩm chưa có giá nhập</b></div></div>`:''}<button class="btn" data-newprod>+ Thêm sản phẩm hoặc dịch vụ</button>
   <div class="group">${products.map(p=>`<button class="cell" data-edit="${p.id}"><div class="em" style="${tint(p)}">${pic(p)}</div><div class="grow"><div class="t">${esc(p.name)}</div><div class="s">${p.service?'Dịch vụ':`Tồn ${p.stock}`} · ${p.cost?`Nhập ${short(p.cost)} · <span class="${p.price>=p.cost?'inc':'exp'}">${p.price>=p.cost?'lời':'lỗ'} ${short(Math.abs(p.price-p.cost))}/${esc(p.unit||'cái')}</span>`:'<span class="exp">Chưa có giá nhập</span>'}</div></div><div class="r big num">${fmt(p.price)}</div>${CHEV}</button>`).join('')}</div>`;
 }
 function rStock(){
@@ -827,9 +826,9 @@ function rStock(){
    <div class="field"><label for="s-p">Sản phẩm <button type="button" class="link" id="s-scan" style="float:right;font-size:14px">Quét mã</button></label><select id="s-p">${goods.map(p=>`<option value="${p.id}" ${p.id===st.spid?'selected':''}>${p.emoji} ${esc(p.name)} (còn ${p.stock})</option>`).join('')}</select></div>
    ${st.smode==='out'?`<div class="field"><label for="s-q">Số lượng xuất</label><input id="s-q" type="number" inputmode="numeric" value="1"><span class="msg"></span></div>
    <div class="field"><label>Lý do</label><div class="chips wrap-chips">${OUT_REASONS.map(r=>`<button type="button" class="chip sm" data-oreason="${r}" aria-pressed="${r===(st.oreason||OUT_REASONS[0])}">${r}</button>`).join('')}</div></div>
-   <button class="btn danger" id="sOut">Xuất kho</button><span class="hint">Hàng chết, hỏng, dùng nội bộ được tính là hao hụt (theo giá nhập) và trừ vào Lời thực. Trả nhà cung cấp thì không tính lỗ.</span>`
+   <button class="btn danger" id="sOut">Xuất kho</button>`
    :`<div class="form-grid"><div class="field"><label for="s-q">Số lượng</label><input id="s-q" type="number" inputmode="numeric" value="10"><span class="msg"></span></div><div class="field"><label for="s-c">Giá nhập / đơn vị</label><input id="s-c" type="number" inputmode="numeric"></div></div>
-   <button class="btn" id="sIn">Nhập kho</button><span class="hint">Tiền nhập hàng tự ghi vào Thu chi.</span>`}</div>
+   <button class="btn" id="sIn">Nhập kho</button>`}</div>
   ${moves.length?`<div class="group-h">Lịch sử nhập xuất</div><div class="group">${moves.slice().sort((a,b)=>b.at-a.at).slice(0,15).map(m=>{const p=P(m.pid);return `<div class="cell"><div class="em" style="${p?tint(p):''}">${pic(p)}</div><div class="grow"><div class="t">${esc(p?.name||'Đã xóa')}</div><div class="s">${new Date(m.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})} · ${m.qty>0?'Nhập kho':esc(m.reason||'Xuất kho')}</div></div><div class="r big num ${m.qty>0?'inc':'exp'}">${m.qty>0?'+':'−'}${Math.abs(m.qty)}</div></div>`}).join('')}</div>`:''}
   ${low.length?`<div class="group-h">Sắp hết hàng</div><div class="group">${low.map(p=>`<button class="cell" data-restock="${p.id}"><div class="em" style="${tint(p)}">${pic(p)}</div><div class="grow"><div class="t">${esc(p.name)}</div><div class="s">Chạm để nhập thêm</div></div><div class="r low">còn ${p.stock}</div></button>`).join('')}</div>`:''}
   <div class="panel"><h3>Tồn kho</h3><div class="hbar">${goods.slice().sort((a,b)=>a.stock-b.stock).map(p=>`<span class="nm">${p.emoji} ${esc(p.name)}</span><span class="num ${p.stock<5?'low':''}">${p.stock}</span><div class="track"><i style="width:${Math.max(0,p.stock)/mx*100}%;${p.stock<5?'background:var(--expense)':''}"></i></div>`).join('')}</div></div>`;
@@ -854,7 +853,7 @@ function rSettings(){
    <label class="cell" style="cursor:pointer"><span class="ic" style="background:var(--brand-soft)">📥</span><span class="grow"><span class="t" style="display:block">Khôi phục từ file</span><span class="s" style="display:block">Chọn file …sao-luu…json</span></span>${CHEV}<input type="file" id="restoreIn" accept="application/json,.json" hidden></label>
    <button class="cell" data-snaps><span class="ic" style="background:var(--brand-soft)">🛟</span><span class="grow"><span class="t" style="display:block">Bản sao tự động trong máy</span><span class="s" style="display:block">Quay lại dữ liệu của ngày trước</span></span>${CHEV}</button>
    ${isStandalone()||inFrame?'':`<button class="cell" data-install><span class="ic" style="background:var(--brand-soft)">📲</span><span class="grow"><span class="t" style="display:block">Thêm vào màn hình chính</span><span class="s" style="display:block">Giúp iPhone không tự xóa dữ liệu</span></span>${CHEV}</button>`}</div>
-  <p class="hint" style="margin:0 4px">Dữ liệu lưu trong máy này (2 nơi, tự giữ bản sao mỗi ngày). Bấm Sao lưu ra file rồi chọn <b>Lưu vào Tệp</b> (iCloud Drive) hoặc gửi Zalo cho chính mình. Khi đổi máy, mở app trên máy mới và chọn Khôi phục từ file.</p>
+  
   <div class="group" style="margin-top:8px"><button class="cell" id="clearSample"><span class="grow exp">Xóa toàn bộ dữ liệu, bắt đầu lại</span></button></div>`;
 }
 function bindReport(){
@@ -875,10 +874,9 @@ function bindReport(){
   }
 }
 function openPromo(id){const ex=settings.promos.find(x=>x.id===id);let kind=ex?.kind||'pct';sheetMode='promo';
-  const draw=()=>{openSheet(ex?'Sửa khuyến mãi':'Khuyến mãi mới',`<div class="field"><label for="pm-n">Tên chương trình</label><input id="pm-n" value="${esc(ex?.name||'')}" placeholder="Ví dụ: Giảm 10% cuối tuần"><span class="msg"></span></div>
+  const draw=()=>{openSheet(ex?'Sửa khuyến mãi':'Khuyến mãi mới',`<div class="field"><label for="pm-n">Tên chương trình</label><input id="pm-n" value="${esc(ex?.name||'')}" placeholder="Tên chương trình"><span class="msg"></span></div>
     <div class="seg"><button data-pk="pct" aria-pressed="${kind==='pct'}">Giảm theo %</button><button data-pk="amt" aria-pressed="${kind==='amt'}">Giảm số tiền</button></div>
-    <div class="form-grid"><div class="field"><label for="pm-v">${kind==='pct'?'Phần trăm giảm':'Số tiền giảm (₫)'}</label><input id="pm-v" type="number" inputmode="numeric" value="${ex?.value||''}" placeholder="${kind==='pct'?'10':'20000'}"><span class="msg"></span></div><div class="field"><label for="pm-m">Đơn tối thiểu (₫)</label><input id="pm-m" type="number" inputmode="numeric" value="${ex?.min||''}" placeholder="Không bắt buộc"></div></div>
-    <p class="hint" style="margin:0 4px">Khi tạo đơn, chạm vào khuyến mãi để áp dụng. App tự tính số tiền giảm.</p>`,
+    <div class="form-grid"><div class="field"><label for="pm-v">${kind==='pct'?'Phần trăm giảm':'Số tiền giảm (₫)'}</label><input id="pm-v" type="number" inputmode="numeric" value="${ex?.value||''}" placeholder="${kind==='pct'?'10':'20000'}"><span class="msg"></span></div><div class="field"><label for="pm-m">Đơn tối thiểu (₫)</label><input id="pm-m" type="number" inputmode="numeric" value="${ex?.min||''}" placeholder="Không bắt buộc"></div></div>`,
     `<div class="row">${ex?'<button class="btn danger" id="pmDel">Xóa</button>':''}<button class="btn" id="pmSave" style="flex:1">Lưu</button></div>`);
    document.querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>{kind=b.dataset.pk;const n=$('#pm-n').value,m=$('#pm-m').value;draw();$('#pm-n').value=n;$('#pm-m').value=m});
    $('#pmSave').onclick=()=>{const name=$('#pm-n').value.trim(),v=Math.round(+$('#pm-v').value||0),min=Math.max(0,Math.round(+$('#pm-m').value||0));
@@ -903,10 +901,10 @@ function openEditor(id,pre){
      <div class="ph-btns"><label>📷 Chụp ảnh<input type="file" accept="image/*" capture="environment" class="p-file" hidden></label><label>🖼️ Chọn từ máy<input type="file" accept="image/*" class="p-file" hidden></label></div>
      ${f.img?`<button class="link" id="imgDel" style="align-self:center;margin-top:-8px;color:var(--expense)">Bỏ ảnh</button>`:''}
      <div class="group form-list">
-      <label class="frow"><span>Tên</span><input id="p-name" value="${esc(f.name)}" placeholder="Ví dụ: Cá vàng Ranchu" autocomplete="off"></label>
-      <label class="frow"><span>Giá nhập</span><input id="p-cost" inputmode="numeric" value="${money(f.cost)}" placeholder="Giá anh mua vào" class="num money"><i>₫</i></label>
-      <label class="frow"><span>Giá bán</span><input id="p-price" inputmode="numeric" value="${money(f.price)}" placeholder="Giá bán cho khách" class="num money"><i>₫</i></label>
-      <div class="frow"><span>Mã vạch</span><input id="p-code" value="${esc(f.code||'')}" placeholder="Không bắt buộc" inputmode="numeric" autocomplete="off" style="text-align:right"><button type="button" class="scan-btn" id="p-scan" aria-label="Quét mã vạch">${SCAN_IC}</button></div>
+      <label class="frow"><span>Tên</span><input id="p-name" value="${esc(f.name)}" placeholder="Tên sản phẩm" autocomplete="off"></label>
+      <label class="frow"><span>Giá nhập</span><input id="p-cost" inputmode="numeric" value="${money(f.cost)}" placeholder="0" class="num money"><i>₫</i></label>
+      <label class="frow"><span>Giá bán</span><input id="p-price" inputmode="numeric" value="${money(f.price)}" placeholder="0" class="num money"><i>₫</i></label>
+      <div class="frow"><span>Mã vạch</span><input id="p-code" value="${esc(f.code||'')}" placeholder="—" inputmode="numeric" autocomplete="off" style="text-align:right"><button type="button" class="scan-btn" id="p-scan" aria-label="Quét mã vạch">${SCAN_IC}</button></div>
      </div>
      <div class="hint" id="margin" style="margin:-8px 4px 0"></div>
      <div class="group-h">Danh mục</div>
@@ -925,7 +923,7 @@ function openEditor(id,pre){
       </div></details>`,
      `<div class="row">${ex?'<button class="btn danger" id="pDel">Xóa</button>':''}<button class="btn" id="pSave" style="flex:1">${ex?'Lưu thay đổi':'Thêm sản phẩm'}</button></div>`,
      ex?'':`<button class="link" id="pSaveTop">Lưu</button>`);
-    const mg=()=>{const pr=unmoney($('#p-price').value),co=unmoney($('#p-cost').value);const u=esc($('#p-unit').value||'cái');$('#margin').innerHTML=pr&&co?(pr>=co?`Bán 1 ${u} lời <b class="inc num">${fmt(pr-co)}</b> (${Math.round((pr-co)/pr*100)}%)`:`Bán 1 ${u} <b class="exp">lỗ ${fmt(co-pr)}</b>, giá bán đang thấp hơn giá nhập`):pr&&!$('#p-svc').checked?`<span class="exp">Chưa có giá nhập nên app chưa tính được lời lỗ.</span>`:''};mg();
+    const mg=()=>{const pr=unmoney($('#p-price').value),co=unmoney($('#p-cost').value);const u=esc($('#p-unit').value||'cái');$('#margin').innerHTML=pr&&co?(pr>=co?`Bán 1 ${u} lời <b class="inc num">${fmt(pr-co)}</b> (${Math.round((pr-co)/pr*100)}%)`:`Bán 1 ${u} <b class="exp">lỗ ${fmt(co-pr)}</b>`):pr&&!$('#p-svc').checked?'':''};mg();
     $('#p-scan').onclick=()=>{sync();openScanner(c=>{f.code=c;draw();toast('Đã lấy mã '+c)},'Quét mã vạch sản phẩm',false,()=>draw())};
     document.querySelectorAll('#sheetBody .money').forEach(i=>i.oninput=()=>{const v=unmoney(i.value);i.value=money(v);mg()});
     document.querySelectorAll('#p-img,.p-file').forEach(inp=>inp.onchange=e=>{const file=e.target.files[0];if(file){sync();toast('Đang xử lý ảnh…');resizeImg(file,u=>{f.img=u;draw()})}});
@@ -987,7 +985,7 @@ function openCatList(kind){
   openSheet(kind==='p'?'Danh mục sản phẩm':'Hạng mục thu chi',`
    ${kind==='p'?'':`<div class="seg"><button data-mgr="out" aria-pressed="${kind==='out'}">Tiền chi</button><button data-mgr="in" aria-pressed="${kind==='in'}">Tiền thu</button></div>`}
    <div class="group">${catList(kind).map(c=>`<button class="cell" data-catedit="${c.id}" data-kind="${kind}">${icBox(c)}<span class="grow"><span class="t" style="display:block">${esc(c.name)}</span><span class="s" style="display:block">${c.sys?'Tự động · ':''}${catUse(kind,c)} ${kind==='p'?'sản phẩm':'khoản'}</span></span><span class="sw" style="background:${c.color};width:14px;height:14px;border-radius:50%"></span>${CHEV}</button>`).join('')||'<div class="empty">Chưa có danh mục nào</div>'}</div>
-   <p class="hint" style="margin:0 4px">Chạm để đổi tên, biểu tượng và màu.${kind==='p'?'':' Hạng mục “Tự động” do app ghi, chỉ đổi được biểu tượng và màu.'}</p>`,
+   `,
    `<button class="btn" data-catnew="${kind}">＋ Thêm ${kind==='p'?'danh mục':'hạng mục'}</button>`);
 }
 function openCatEditor(kind,id,done){
