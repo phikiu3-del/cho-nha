@@ -568,8 +568,10 @@ const STATUS={new:['Ghi nợ','st-new'],ship:['Đang giao','st-ship'],done:['Đ�
 const PAY={cod:'Tiền mặt',bank:'Chuyển khoản',wallet:'Ví điện tử'};
 const iPrice=i=>i.price!=null?i.price:(P(i.id)?.price||0),iCost=i=>i.cost||P(i.id)?.cost||0;
 const orderTotal=o=>Math.max(0,o.items.reduce((s,i)=>s+iPrice(i)*i.qty,0)-(o.discount||0));
-const buyIn=(a,b=Infinity)=>moves.filter(m=>m.qty>0&&m.at>=a&&m.at<b).reduce((s,m)=>s+m.qty*(m.cost||0),0);
-const lossIn=(a,b=Infinity)=>moves.filter(m=>m.qty<0&&m.reason!=='Trả nhà cung cấp'&&m.at>=a&&m.at<b).reduce((s,m)=>s+(-m.qty)*(m.cost||0),0);
+/* Kiểm kho = sửa số lượng: giảm thì trừ vào tiền nhập, không tính hao hụt */
+const isFix=m=>m.reason==='Kiểm kho';
+const buyIn=(a,b=Infinity)=>Math.max(0,moves.filter(m=>(m.qty>0||isFix(m))&&m.at>=a&&m.at<b).reduce((s,m)=>s+m.qty*(m.cost||0),0));
+const lossIn=(a,b=Infinity)=>moves.filter(m=>m.qty<0&&m.reason!=='Trả nhà cung cấp'&&!isFix(m)&&m.at>=a&&m.at<b).reduce((s,m)=>s+(-m.qty)*(m.cost||0),0);
 const orderCost=o=>o.items.reduce((s,i)=>s+iCost(i)*i.qty,0);
 const unpaidOf=cid=>orders.filter(o=>o.cid===cid&&o.status==='new');
 const debtOf=cid=>Math.max(0,unpaidOf(cid).reduce((s,o)=>s+orderTotal(o),0)-debtPays.filter(p=>p.cid===cid&&!p.settled).reduce((s,p)=>s+p.amount,0));
@@ -1030,7 +1032,7 @@ function openStockEdit(id){const p=P(id);if(!p)return;sheetMode='stk';
       if(np!==p.price){p.price=np;if(!d){save();closeSheet();keepScroll(render);toast(`Giá bán ${p.name}: ${fmt(np)}`);return}}
       if(!d){closeSheet();return}
       let at=Date.now();while(moves.some(x=>x.at===at&&x.pid===p.id))at++;
-      moves.push({at,pid:p.id,qty:d,cost:d<0?(p.cost||0):0,reason:'Kiểm kho'});p.stock=v;save();closeSheet();keepScroll(render);toast(`Đã sửa tồn ${p.name}: ${v}`)}};
+      moves.push({at,pid:p.id,qty:d,cost:p.cost||0,reason:'Kiểm kho'});p.stock=v;save();closeSheet();keepScroll(render);toast(`Đã sửa tồn ${p.name}: ${v}`)}};
   draw()}
 function rSettings(){
   return `<div class="group-h">Ảnh đại diện cửa hàng</div><div class="group"><div class="av-edit"><div class="av-big">${settings.logo?`<img src="${settings.logo}" alt="Ảnh cửa hàng">`:esc((settings.shop||'C').trim().charAt(0).toUpperCase())}</div>
