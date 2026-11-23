@@ -712,7 +712,8 @@ function vShop(){
     <div class="hero-main big num">${fmt(rev)}</div>
     <div class="hero-sub"><div><span>Tiền lời</span><b class="num">${fmt(prof)}</b></div><div><span>Đơn</span><b class="num">${td.length}</b></div><div><span>Món đã bán</span><b class="num">${td.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.qty,0),0)}</b></div></div></div>`})()}
   <div class="chips" role="toolbar" aria-label="Danh mục"><button class="chip" aria-pressed="${st.cat==='Tất cả'}" data-cat="Tất cả">Tất cả</button>${pcats.map(c=>`<button class="chip" aria-pressed="${c.name===st.cat}" data-cat="${esc(c.name)}">${c.icon} ${esc(c.name)}</button>`).join('')}<button class="chip" data-mgr="p" style="color:var(--brand)">＋ Danh mục</button></div>
-  ${products.length?`<div class="row hint" style="margin:-6px 4px"><span>Chạm sản phẩm để thêm vào đơn</span><button class="link" data-newprod style="font-size:14px">＋ Sản phẩm mới</button></div>`:''}
+  ${st.cat!=='Tất cả'&&pcats.some(c=>c.name===st.cat)?`<div class="row hint" style="margin:-6px 4px"><span>${products.filter(p=>p.cat===st.cat).length} sản phẩm</span><button class="link" data-catpick style="font-size:14px">Chọn sản phẩm</button></div>`
+   :products.length?`<div class="row hint" style="margin:-6px 4px"><span>Chạm sản phẩm để thêm vào đơn</span><button class="link" data-newprod style="font-size:14px">＋ Sản phẩm mới</button></div>`:''}
   ${!products.length?`<div class="first"><div class="first-ic">🛍️</div><h2>Chưa có sản phẩm nào</h2><p>Thêm sản phẩm đầu tiên, kèm ảnh chụp hoặc ảnh có sẵn trong điện thoại. Sau đó chạm vào sản phẩm để bán.</p><button class="btn" data-newprod style="width:100%">＋ Thêm sản phẩm đầu tiên</button>${!pcats.length?`<button class="btn ghost" data-mgr="p" style="width:100%">Tạo danh mục trước (không bắt buộc)</button>`:''}</div>`
    :`<div class="grid rows">${list.length?list.map(cardHTML).join(''):`<div class="empty" style="grid-column:1/-1">${st.q?`Không tìm thấy “${esc(st.q)}”.`:`Danh mục “${esc(st.cat)}” chưa có sản phẩm.`}<br><button class="btn sm" data-newprod style="margin-top:12px">＋ Thêm sản phẩm${st.q?'':' vào đây'}</button></div>`}</div>`}</div>`;
 }
@@ -1237,6 +1238,16 @@ function openCatList(kind){
    `,
    `<button class="btn" data-catnew="${kind}">＋ Thêm ${kind==='p'?'danh mục':'hạng mục'}</button>`);
 }
+function openCatPick(name){sheetMode='catpick';const q=norm(name);
+  const sel=new Set(products.filter(p=>p.cat===name||(!p.cat&&norm(p.name).includes(q))).map(p=>p.id));
+  const list=[...products].sort((a,b)=>(sel.has(b.id)-sel.has(a.id))||a.name.localeCompare(b.name,'vi'));
+  const draw=()=>{openSheet(name,`<div class="row" style="margin:0 4px"><span class="hint" id="cpN">Đã chọn ${sel.size}</span><button class="link" id="cpAll" style="font-size:15px">${sel.size===products.length?'Bỏ chọn hết':'Chọn tất cả'}</button></div>
+    <div class="group">${list.map(p=>`<label class="cell" style="gap:12px"><div class="em" style="${tint(p)}">${pic(p)}</div><span class="grow"><span class="t" style="display:block">${esc(p.name)}</span>${p.cat&&p.cat!==name?`<span class="s" style="display:block">${esc(p.cat)}</span>`:''}</span><input type="checkbox" class="cp" data-id="${p.id}" ${sel.has(p.id)?'checked':''} style="width:24px;height:24px;accent-color:var(--brand)"></label>`).join('')}</div>`,
+    `<button class="btn" id="cpSave" style="width:100%">Lưu</button>`);
+    document.querySelectorAll('#sheetBody .cp').forEach(c=>c.onchange=()=>{const id=+c.dataset.id;c.checked?sel.add(id):sel.delete(id);$('#cpN').textContent='Đã chọn '+sel.size;$('#cpAll').textContent=sel.size===products.length?'Bỏ chọn hết':'Chọn tất cả'});
+    $('#cpAll').onclick=()=>{if(sel.size===products.length)sel.clear();else products.forEach(p=>sel.add(p.id));draw()};
+    $('#cpSave').onclick=()=>{let n=0;products.forEach(p=>{if(sel.has(p.id)){if(p.cat!==name){p.cat=name;n++}}else if(p.cat===name){p.cat='';n++}});save();closeSheet();keepScroll(render);toast(`Danh mục ${name}: ${sel.size} sản phẩm`)}};
+  draw()}
 function openCatEditor(kind,id,done){
   const list=kind==='p'?pcats:ccats,ex=id?list.find(c=>c.id===id):null;
   let name=ex?.name||'',icon=ex?.icon||ICONS[0],color=ex?.color||COLORS[catList(kind).length%COLORS.length];
@@ -1258,7 +1269,7 @@ function openCatEditor(kind,id,done){
       if(ex){const old=ex.name;Object.assign(ex,{name:ex.sys?old:n,icon,color});
         if(!ex.sys&&old!==n){if(kind==='p'){products.forEach(p=>{if(p.cat===old)p.cat=n});if(st.cat===old)st.cat=n}else cash.forEach(e=>{if(e.cat===old)e.cat=n})}}
       else list.push(kind==='p'?{id:'p'+Date.now(),name:n,icon,color}:{id:'c'+Date.now(),type:kind,name:n,icon,color});
-      save();render();if(kind==='p'&&!ex&&!done){st.cat=n;render();openEditor(null);toast(`Đã tạo “${n}”. Giờ thêm sản phẩm, nhập giá nhập và giá bán.`);return}toast('Đã lưu');back(n)};
+      save();render();if(kind==='p'&&!ex&&!done){st.cat=n;if(location.hash.slice(1)!=='')location.hash='';render();if(products.length)openCatPick(n);else openEditor(null);return}toast('Đã lưu');back(n)};
     if(ex&&!ex.sys)$('#catDel').onclick=()=>{
       const used=catUse(kind,ex);
       if(kind==='p'&&used){toast(`Còn ${used} sản phẩm trong danh mục này. Chuyển chúng sang danh mục khác trước.`);return}
@@ -1287,12 +1298,13 @@ function route(){let h=location.hash.slice(1);if(h==='cashbook'){st.rtab='cash';
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-year],[data-thm],[data-delorder],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-mv],[data-mvall],[data-stk],[data-op],[data-onav],[data-style],[data-newprod],[data-restock],[data-go]');
+  const t=e.target.closest('[data-year],[data-thm],[data-delorder],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-catpick],[data-mv],[data-mvall],[data-stk],[data-op],[data-onav],[data-style],[data-newprod],[data-restock],[data-go]');
   if(!t)return;const d=t.dataset;
   if(d.mgr)openCatList(d.mgr);
   else if(d.catedit)openCatEditor(d.kind,d.catedit);
   else if(d.catnew)openCatEditor(d.catnew,null);
   else if(d.cat){st.cat=d.cat;keepScroll(render)}
+  else if('catpick' in d){openCatPick(st.cat)}
   else if(d.add){const p=P(+d.add);if(!p.service&&p.stock<=0){toast('Sản phẩm đã hết hàng. Vào Kho hàng để nhập thêm.');return}setQty(+d.add,(cart[d.add]||0)+1);t.closest('.card')?.animate?.([{transform:'scale(.96)'},{transform:'scale(1)'}],{duration:180})}
   else if(d.inc)setQty(+d.inc,(cart[d.inc]||0)+1);
   else if(d.dec)setQty(+d.dec,(cart[d.dec]||0)-1);
