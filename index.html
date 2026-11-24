@@ -1675,6 +1675,8 @@ $('#fab').onclick=()=>openCashEntry(null);
 const tip=document.createElement('div');tip.className='tip';document.body.appendChild(tip);
 const showTip=e=>{const h=e.target.closest?.('[data-tip]');if(!h){tip.classList.remove('on');return}const r=h.getBoundingClientRect();tip.textContent=h.dataset.tip;tip.classList.add('on');const w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';tip.style.top=Math.max(8,r.top-34)+'px'};
 ['pointerover','pointerdown','focusin'].forEach(ev=>document.addEventListener(ev,showTip));
+document.addEventListener('focusin',e=>{const el=e.target;if(!el||!(el.tagName==='TEXTAREA'||(el.tagName==='INPUT'&&/^(text|search|tel|url|email|)$/.test(el.type||''))))return;
+  const end=()=>{try{if(document.activeElement===el){const n=el.value.length;el.setSelectionRange(n,n)}}catch(_){}};requestAnimationFrame(end);setTimeout(end,60)});
 document.addEventListener('scroll',()=>tip.classList.remove('on'),true);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-backup],[data-install],[data-snaps],[data-hide]');if(!b)return;
   if(b.dataset.backup!==undefined)backupFile();else if(b.dataset.install!==undefined)openInstall();else if(b.dataset.snaps!==undefined)openSnaps();

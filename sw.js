@@ -1,4 +1,4 @@
-const CACHE='chonha-v53';
+const CACHE='chonha-v54';
 const ASSETS=['./','index.html','qrcode.min.js','zxing.min.js','firebase-app-compat.js','firebase-firestore-compat.js','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
