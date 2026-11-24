@@ -292,8 +292,8 @@ body.has-bill .view{padding-bottom:84px}
 .cal button.today .d{background:var(--brand);color:var(--brand-fg)}
 .cal button[aria-pressed="true"]{background:var(--brand-soft)}
 .cal button.mute{opacity:.3}
-.donut-wrap{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center}
-@media (max-width:380px){.donut-wrap{grid-template-columns:1fr;justify-items:center}}
+.donut-wrap{display:grid;grid-template-columns:1fr;justify-items:center;gap:16px;align-items:center}
+.donut-wrap .legend{gap:10px;font-size:15px}
 .donut text{font-family:var(--f-num)}
 .legend{display:flex;flex-direction:column;gap:8px;font-size:14px;min-width:0;width:100%}
 .legend div{display:flex;align-items:center;gap:8px;min-width:0}
@@ -1251,7 +1251,7 @@ function rOverview(){
   if(inR.length)h+=`<div class="panel"><h3>Hình thức thanh toán</h3><div class="split">${pays.filter(p=>p.v).map(p=>`<i style="width:${p.v/ptot*100}%;background:${p.c}"></i>`).join('')}</div>
    <div class="legend">${pays.map(p=>`<div><span class="sw" style="background:${p.c}"></span><span class="n">${PAY[p.k]}</span><span class="num hint">${fmt(p.v)}</span><b class="num">${Math.round(p.v/ptot*100)}%</b></div>`).join('')}</div></div>
   <div class="panel"><h3>Bán chạy nhất</h3><div class="hbar">${topP.map(([id,v])=>`<span class="nm">${P(+id).emoji} ${esc(P(+id).name)}</span><span class="num">${fmt(v)}</span><div class="track"><i style="width:${v/tmax*100}%"></i></div>`).join('')||'<span class="hint">Chưa có dữ liệu</span>'}</div></div>`;
-  return h;
+  return h+'<div style="height:76px" aria-hidden="true"></div>';
 }
 
 function rProducts(){
@@ -1492,7 +1492,7 @@ function rYear(){
 /* ---------- category manager ---------- */
 const KIND={p:'Danh mục sản phẩm',in:'Hạng mục thu',out:'Hạng mục chi'};
 function catList(kind){return kind==='p'?pcats:ccats.filter(c=>c.type===kind)}
-function catUse(kind,c){return kind==='p'?products.filter(p=>p.cat===c.name).length:cash.filter(e=>e.cat===c.name).length}
+function catUse(kind,c){return kind==='p'?products.filter(p=>p.cat===c.name).length:allEntries().filter(e=>e.cat===c.name&&(!c.type||e.type===c.type)).length}
 function openCatList(kind){
   sheetMode='catlist';
   openSheet(kind==='p'?'Danh mục sản phẩm':'Hạng mục thu chi',`
