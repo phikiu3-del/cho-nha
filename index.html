@@ -504,7 +504,7 @@ const FB_CONFIG={apiKey:"AIzaSyCu7SZH_ohkAOq20PWdoR2NTM76rzgFN-s",authDomain:"od
 const FB_SRC=['firebase-app-compat.js','firebase-firestore-compat.js'];
 const uid=()=>Date.now()*100+Math.floor(Math.random()*100);
 const SYNC_COLS={products:r=>'p'+r.id,orders:r=>'o'+r.id,customers:r=>'c'+r.id,cash:r=>'x'+r.id,moves:r=>'m'+r.at+'_'+r.pid,debtPays:r=>'d'+r.at+'_'+r.cid,pcats:r=>'k'+r.id,ccats:r=>'k'+r.id};
-const META_KEYS=['shop','logo','bin','acc','accName','promos'];
+const META_KEYS=['shop','logo','bin','acc','accName','promos','phone','addr'],META_SOFT=['phone','addr'];
 const SYNC_LABEL={off:'Chưa bật',connecting:'Đang kết nối…',ok:'Đã đồng bộ',pending:'Đang gửi…',offline:'Mất mạng, có mạng sẽ tự gửi',error:'Lỗi kết nối, đang thử lại'};
 let syncCfg=store.get('sync',null);
 const SY={db:null,base:null,synced:null,unsub:[],status:'off',applyT:null,pushT:null,pend:0};
@@ -554,7 +554,7 @@ function listen(){SY.unsub.forEach(u=>{try{u()}catch(e){}});SY.unsub=[];
       if(!snap.metadata.fromCache&&!SY.pend)setSync('ok');
       if(ch)afterRemote()},e=>{console.warn('listen',e);setSync('error')}))}
   SY.unsub.push(SY.base.collection('meta').doc('info').onSnapshot(doc=>{if(!doc.exists||doc.metadata.hasPendingWrites)return;const m=doc.data(),j=JSON.stringify(m);if(j===SY.synced.meta)return;
-    SY.synced.meta=j;META_KEYS.forEach(k=>{if(k in m)settings[k]=m[k];else delete settings[k]});if(!Array.isArray(settings.promos))settings.promos=[];afterRemote()}))}
+    SY.synced.meta=j;META_KEYS.forEach(k=>{if(k in m)settings[k]=m[k];else if(!META_SOFT.includes(k))delete settings[k]});if(!Array.isArray(settings.promos))settings.promos=[];afterRemote()}))}
 async function syncStart(code,mode){
   const db=await fbInit();SY.base=db.collection('shops').doc(code);
   let saved=null;try{saved=await idb.get('synced_'+code)}catch(e){}
@@ -564,7 +564,7 @@ async function syncStart(code,mode){
     const metaDoc=snaps.pop();if(!metaDoc.exists&&snaps.every(q=>q.empty))throw new Error('notfound');
     await keepSnap('Trước khi dùng chung cửa hàng');
     SY.synced={meta:null};Object.keys(SYNC_COLS).forEach((c,i)=>{const kf=SYNC_COLS[c];SY.synced[c]={};const arr=snaps[i].docs.map(d=>d.data());arr.forEach(r=>SY.synced[c][kf(r)]=JSON.stringify(r));setArr(c,arr)});
-    if(metaDoc.exists){const m=metaDoc.data();SY.synced.meta=JSON.stringify(m);META_KEYS.forEach(k=>{if(k in m)settings[k]=m[k];else delete settings[k]})}
+    if(metaDoc.exists){const m=metaDoc.data();SY.synced.meta=JSON.stringify(m);META_KEYS.forEach(k=>{if(k in m)settings[k]=m[k];else if(!META_SOFT.includes(k))delete settings[k]})}
     if(!Array.isArray(settings.promos))settings.promos=[];if(!ccats.length)ccats=SYS_CCATS();orders.sort((a,b)=>b.at-a.at);cart={};
   }else{SY.synced=saved||{meta:null};for(const c in SYNC_COLS)SY.synced[c]=SY.synced[c]||{}}
   syncCfg={code};store.set('sync',syncCfg);saveLocal();saveSynced();listen();
@@ -975,37 +975,53 @@ const IC_SHARE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 function billQR(o){return settings.bin&&settings.acc&&o.status!=='cancel'&&(o.status==='new'||o.pay==='bank')}
 function qrCanvas(text){return new Promise(res=>{if(!window.QRCode)return res(null);const d=document.createElement('div');try{new QRCode(d,{text,width:360,height:360,correctLevel:QRCode.CorrectLevel.M})}catch(e){return res(null)}
   const c=d.querySelector('canvas'),im=d.querySelector('img');if(c)return res(c);if(im){if(im.complete&&im.naturalWidth)return res(im);im.onload=()=>res(im);setTimeout(()=>res(im.naturalWidth?im:null),600)}else res(null)})}
+const C128=['212222','222122','222221','121223','121322','131222','122213','122312','132212','221213','221312','231212','112232','122132','122231','113222','123122','123221','223211','221132','221231','213212','223112','312131','311222','321122','321221','312212','322112','322211','212123','212321','232121','111323','131123','131321','112313','132113','132311','211313','231113','231311','112133','112331','132131','113123','113321','133121','313121','211331','231131','213113','213311','213131','311123','311321','331121','312113','312311','332111','314111','221411','431111','111224','111422','121124','121421','141122','141221','112214','112412','122114','122411','142112','142211','241211','221114','413111','241112','134111','111242','121142','121241','114212','124112','124211','411212','421112','421211','212141','214121','412121','111143','111341','131141','114113','114311','411113','411311','113141','114131','311141','411131','211412','211214','211232','2331112'];
+function code128(t){const v=[104];[...t].forEach(ch=>{const c=ch.charCodeAt(0);v.push(c>=32&&c<127?c-32:0)});let sum=104;v.slice(1).forEach((x,i)=>sum+=x*(i+1));v.push(sum%103,106);return v.map(x=>C128[x]).join('')}
+function drawBarcode(x,t,cx,y,h,maxW){const pat=code128(t),mods=[...pat].reduce((a,d)=>a+ +d,0),u=Math.max(1,Math.min(3,Math.floor(maxW/(mods+20))));let px=cx-mods*u/2;x.fillStyle='#111';[...pat].forEach((d,i)=>{const w=+d*u;if(i%2===0)x.fillRect(px,y,w,h);px+=w});return mods*u}
+const loadImg=src=>new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
 async function billCanvas(o){
-  const W=720,PAD=48,F='-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif';
+  const W=760,PAD=44,F='-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif',IW=W-PAD*2;
   const brand=(getComputedStyle(document.documentElement).getPropertyValue('--brand')||'#1f8f72').trim()||'#1f8f72';
-  const qr=billQR(o)?await qrCanvas(vietqr(orderTotal(o),'Thanh toan '+o.id)):null;
+  const qr=billQR(o)?await qrCanvas(vietqr(orderTotal(o),'Thanh toan '+o.id)):null,logo=await loadImg(settings.logo);
   const m=document.createElement('canvas').getContext('2d');
-  const wrap=(t,font,max)=>{m.font=font;const w=t.split(' '),L=[];let cur='';w.forEach(x=>{const n=cur?cur+' '+x:x;if(m.measureText(n).width>max&&cur){L.push(cur);cur=x}else cur=n});if(cur)L.push(cur);return L};
-  const NF='600 28px '+F,SF='400 23px '+F;
-  const rows=o.items.map(i=>({n:wrap(P(i.id)?.name||i.name||'Sản phẩm',NF,W-PAD*2-200),sub:`${fmt(iPrice(i))} × ${i.qty}`,v:fmt(iPrice(i)*i.qty)}));
-  let H=PAD+160+70+rows.reduce((a,r)=>a+r.n.length*36+38,0)+(o.discount?50:0)+40+150+(qr?520:0)+90;
-  const c=document.createElement('canvas'),k=2;c.width=W*k;c.height=H*k;const x=c.getContext('2d');x.scale(k,k);
+  const wrap=(t,font,max)=>{m.font=font;const w=String(t).split(' '),L=[];let cur='';w.forEach(x=>{const n=cur?cur+' '+x:x;if(m.measureText(n).width>max&&cur){L.push(cur);cur=x}else cur=n});if(cur)L.push(cur);return L};
+  const d=new Date(o.at),p2=n=>String(n).padStart(2,'0'),cu=C(o.cid);
+  const head=[settings.addr?wrap(settings.addr,'400 22px '+F,IW-40):[],settings.phone?['ĐT: '+settings.phone]:[]].flat();
+  const info=[['Số hóa đơn',o.id],['Ngày mua',`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`],['Giờ mua',`${p2(d.getHours())}:${p2(d.getMinutes())}`],['Khách hàng',cu?.name||o.name||'Khách lẻ']];
+  if(cu?.phone)info.push(['Điện thoại',cu.phone]);
+  info.push(['Thanh toán',o.status==='new'?'Ghi nợ (chưa trả)':o.status==='cancel'?'Đã hủy':(PAY[o.pay]||'Tiền mặt')]);
+  const NF='600 25px '+F,cols={q:W-PAD-300,u:W-PAD-150,t:W-PAD};
+  const rows=o.items.map((i,k)=>{const pr=P(i.id);return {n:wrap((k+1)+'. '+(pr?.name||i.name||'Sản phẩm'),NF,IW),code:pr?.code||'',unit:pr?.unit||'',q:i.qty,u:iPrice(i),t:iPrice(i)*i.qty}});
+  const qty=o.items.reduce((a,i)=>a+i.qty,0),sub=o.items.reduce((a,i)=>a+iPrice(i)*i.qty,0);
+  let H=PAD+(logo?110:0)+60+head.length*30+60+info.length*36+40+46+rows.reduce((a,r)=>a+r.n.length*32+44,0)+40+(o.discount?80:40)+70+44+(qr?500:0)+190+80;
+  const k=2,c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d');x.scale(k,k);
   x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle=brand;x.fillRect(0,0,W,10);
-  let y=PAD+30;x.textAlign='center';x.fillStyle='#111';x.font='800 38px '+F;x.fillText(settings.shop||'ODin Goldfish',W/2,y);
-  y+=40;x.fillStyle='#777';x.font='500 23px '+F;x.fillText('HÓA ĐƠN BÁN HÀNG',W/2,y);
-  y+=36;x.font='400 22px '+F;x.fillText(`${o.id} · ${new Date(o.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'})}`,W/2,y);
-  y+=34;x.fillText('Khách: '+(C(o.cid)?.name||o.name||'Khách lẻ'),W/2,y);
-  const dash=yy=>{x.save();x.strokeStyle='#d5d5d5';x.lineWidth=2;x.setLineDash([8,7]);x.beginPath();x.moveTo(PAD,yy);x.lineTo(W-PAD,yy);x.stroke();x.restore()};
-  y+=30;dash(y);y+=46;
-  rows.forEach(r=>{x.textAlign='left';x.fillStyle='#111';x.font=NF;r.n.forEach((l,j)=>{x.fillText(l,PAD,y+j*36)});x.textAlign='right';x.fillText(r.v,W-PAD,y);
-    y+=(r.n.length-1)*36+32;x.textAlign='left';x.fillStyle='#888';x.font=SF;x.fillText(r.sub,PAD,y);y+=42});
-  if(o.discount){x.textAlign='left';x.fillStyle='#555';x.font='500 25px '+F;x.fillText(o.promo||'Giảm giá',PAD,y);x.textAlign='right';x.fillStyle='#1a8a4a';x.fillText('−'+fmt(o.discount),W-PAD,y);y+=50}
-  y-=14;dash(y);y+=58;
-  x.textAlign='left';x.fillStyle='#111';x.font='700 28px '+F;x.fillText('TỔNG CỘNG',PAD,y+4);x.textAlign='right';x.fillStyle=brand;x.font='800 46px '+F;x.fillText(fmt(orderTotal(o)),W-PAD,y+8);
-  y+=56;x.textAlign='left';x.fillStyle='#777';x.font='400 23px '+F;x.fillText(o.status==='new'?'Chưa thanh toán':o.status==='cancel'?'Đã hủy':'Đã thanh toán · '+(PAY[o.pay]||''),PAD,y);
-  y+=36;
-  if(qr){y+=20;const q=330;x.fillStyle='#f6f6f6';const bx=(W-q-40)/2;x.beginPath();x.roundRect?x.roundRect(bx,y,q+40,q+40,22):x.rect(bx,y,q+40,q+40);x.fill();x.drawImage(qr,bx+20,y+20,q,q);y+=q+40+40;
-    x.textAlign='center';x.fillStyle='#111';x.font='700 26px '+F;x.fillText(`${BANKS[settings.bin]||''} · ${settings.acc}`,W/2,y);
-    if(settings.accName){y+=34;x.fillStyle='#555';x.font='500 23px '+F;x.fillText(settings.accName,W/2,y)}
-    y+=34;x.fillStyle='#888';x.font='400 21px '+F;x.fillText('Quét mã bằng app ngân hàng để chuyển khoản',W/2,y);y+=20}
-  y+=46;x.textAlign='center';x.fillStyle='#999';x.font='italic 400 22px '+F;x.fillText('Cảm ơn quý khách!',W/2,y);y+=40;
-  if(y<H){const c2=document.createElement('canvas');c2.width=W*k;c2.height=Math.ceil(y*k);c2.getContext('2d').drawImage(c,0,0);return c2}
-  return c}
+  const T=(t,px,py,font,col='#111',al='left')=>{x.font=font;x.fillStyle=col;x.textAlign=al;x.fillText(t,px,py)};
+  const dash=yy=>{x.save();x.strokeStyle='#cfcfcf';x.lineWidth=2;x.setLineDash([8,7]);x.beginPath();x.moveTo(PAD,yy);x.lineTo(W-PAD,yy);x.stroke();x.restore()};
+  const line=yy=>{x.fillStyle='#222';x.fillRect(PAD,yy,IW,2)};
+  let y=PAD;
+  if(logo){const r=44;x.save();x.beginPath();x.arc(W/2,y+r,r,0,7);x.clip();x.drawImage(logo,W/2-r,y,r*2,r*2);x.restore();y+=r*2+18}
+  y+=34;T(settings.shop||'ODin Goldfish',W/2,y,'800 38px '+F,'#111','center');
+  head.forEach(h=>{y+=30;T(h,W/2,y,'400 22px '+F,'#555','center')});
+  y+=52;T('HÓA ĐƠN BÁN HÀNG',W/2,y,'800 30px '+F,brand,'center');y+=24;
+  info.forEach(([a,v])=>{y+=36;T(a,PAD,y,'400 23px '+F,'#777');T(v,W-PAD,y,'600 23px '+F,'#111','right')});
+  y+=26;line(y);y+=34;
+  T('Sản phẩm',PAD,y,'700 21px '+F,'#555');T('SL',cols.q,y,'700 21px '+F,'#555','right');T('Đơn giá',cols.u,y,'700 21px '+F,'#555','right');T('Thành tiền',cols.t,y,'700 21px '+F,'#555','right');
+  y+=14;dash(y);y+=34;
+  rows.forEach(r=>{r.n.forEach((l,j)=>T(l,PAD,y+j*32,NF));y+=(r.n.length-1)*32+34;
+    T(r.code?'Mã: '+r.code:(r.unit?'Đơn vị: '+r.unit:''),PAD+28,y,'400 20px '+F,'#999');
+    T(String(r.q),cols.q,y,'500 22px '+F,'#333','right');T(fmt(r.u),cols.u,y,'500 22px '+F,'#333','right');T(fmt(r.t),cols.t,y,'700 22px '+F,'#111','right');y+=44});
+  y-=14;line(y);y+=38;
+  T(`Tổng số lượng: ${qty}`,PAD,y,'400 23px '+F,'#555');T('Tạm tính',cols.u,y,'400 23px '+F,'#555','right');T(fmt(sub),cols.t,y,'600 23px '+F,'#111','right');
+  if(o.discount){y+=40;T(o.promo?'Khuyến mãi: '+o.promo:'Giảm giá',PAD,y,'400 23px '+F,'#555');T('−'+fmt(o.discount),cols.t,y,'600 23px '+F,'#1a8a4a','right')}
+  y+=60;T('TỔNG CỘNG',PAD,y,'800 28px '+F,'#111');T(fmt(orderTotal(o)),W-PAD,y+4,'800 44px '+F,brand,'right');
+  y+=40;T(o.status==='new'?'Chưa thanh toán':o.status==='cancel'?'Đơn đã hủy':'Đã thanh toán · '+(PAY[o.pay]||''),W-PAD,y,'500 21px '+F,o.status==='new'?'#c0392b':'#777','right');
+  if(qr){y+=34;dash(y);y+=26;const q=300,bx=(W-q-36)/2;x.fillStyle='#f5f5f5';x.beginPath();x.roundRect?x.roundRect(bx,y,q+36,q+36,20):x.rect(bx,y,q+36,q+36);x.fill();x.drawImage(qr,bx+18,y+18,q,q);y+=q+36+38;
+    T(`${BANKS[settings.bin]||''} · ${settings.acc}`,W/2,y,'700 25px '+F,'#111','center');if(settings.accName){y+=32;T(settings.accName,W/2,y,'500 22px '+F,'#555','center')}
+    y+=32;T('Quét mã bằng app ngân hàng để chuyển khoản',W/2,y,'400 20px '+F,'#888','center')}
+  y+=34;dash(y);y+=28;drawBarcode(x,o.id,W/2,y,86,IW-120);y+=86+30;T(o.id,W/2,y,'500 22px '+F,'#333','center');
+  y+=46;T('Cảm ơn quý khách, hẹn gặp lại!',W/2,y,'italic 400 22px '+F,'#888','center');y+=36;
+  const c2=document.createElement('canvas');c2.width=W*k;c2.height=Math.ceil(Math.min(y,H)*k);c2.getContext('2d').drawImage(c,0,0);return c2}
 async function openInvoice(id){const o=orders.find(x=>x.id===id);if(!o)return;const back=sheetMode==='done'?null:sheetMode;sheetMode='bill';
   openSheet('Hóa đơn',`<div class="bill-prev"><span class="hint" style="padding:60px 0">Đang tạo hóa đơn…</span></div>`,`<div class="bill-acts" style="margin-top:0"><button class="btn" id="bSend">${IC_SHARE}Gửi hóa đơn</button><button class="btn ghost" id="bSave">${IC_SAVE}Lưu ảnh</button><button class="btn ghost" id="bAmt">${IC_COPY}Chép số tiền</button><button class="btn ghost" id="bTxt">${IC_TEXT}Gửi dạng chữ</button></div>`);
   let blob=null,url='';
@@ -1182,6 +1198,7 @@ function rSettings(){
   return `<div class="group-h">Ảnh đại diện cửa hàng</div><div class="group"><div class="av-edit"><div class="av-big">${settings.logo?`<img src="${settings.logo}" alt="Ảnh cửa hàng">`:esc((settings.shop||'C').trim().charAt(0).toUpperCase())}</div>
    <div class="av-btns"><label>🖼️ Chọn ảnh trong máy<input type="file" accept="image/*" class="logo-in" hidden></label><label>📷 Chụp ảnh<input type="file" accept="image/*" capture="environment" class="logo-in" hidden></label>${settings.logo?'<button class="rm" id="logoRm">Xóa ảnh</button>':''}</div></div></div>
   <div class="group-h">Tên cửa hàng</div><div class="group"><div class="cell"><input id="set-shop" value="${esc(settings.shop)}" style="border:0;background:none;width:100%;padding:0" aria-label="Tên cửa hàng"></div></div>
+  <div class="group-h">Thông tin trên hóa đơn</div><div class="group form-list"><label class="frow"><span>Điện thoại</span><input id="set-phone" type="tel" inputmode="tel" value="${esc(settings.phone||'')}" placeholder="Số điện thoại tiệm"></label><label class="frow"><span>Địa chỉ</span><input id="set-addr" value="${esc(settings.addr||'')}" placeholder="Địa chỉ tiệm"></label></div>
   ${!(FB_CONFIG||window.FB_TEST)&&!syncCfg?'':`<div class="group-h">Dùng chung nhiều máy</div>${syncCfg?`<div class="group"><div class="cell"><span class="ic" style="background:var(--brand-soft)">🔄</span><span class="grow"><span class="t" style="display:block">Đồng bộ đang bật</span><span id="syncStat" class="s ${SY.status==='ok'?'inc':''}" style="display:block">${SYNC_LABEL[SY.status]||''}</span></span></div>
    <div class="sync-code"><div id="syncQR"></div><div><div class="s">Mã cửa hàng</div><b class="num">${fmtCode(syncCfg.code)}</b><button class="link" id="syncCopy">Chép mã</button></div></div>
    <button class="cell" id="syncOff"><span class="grow exp">Ngừng đồng bộ trên máy này</span></button></div>`
@@ -1220,6 +1237,7 @@ function bindReport(){
     document.querySelectorAll('.logo-in').forEach(i=>i.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)squareImg(f,256,d=>{settings.logo=d;if(!save()){delete settings.logo;toast('Bộ nhớ đầy, thử ảnh khác');return}applyAccent();render();toast('Đã cập nhật ảnh cửa hàng')})});
     if($('#logoRm'))$('#logoRm').onclick=()=>{delete settings.logo;save();applyAccent();render();toast('Đã xóa ảnh cửa hàng')};
     $('#fxOn').onchange=e=>{settings.fx=e.target.checked;save();applyAccent()};
+    ['phone','addr'].forEach(k=>{const i=$('#set-'+k);if(i)i.onchange=e=>{const v=e.target.value.trim();if(v)settings[k]=v;else delete settings[k];save();toast('Đã lưu')}});
     $('#set-shop').onchange=e=>{settings.shop=e.target.value.trim()||'ODin Goldfish';save();applyAccent();toast('Đã đổi tên cửa hàng')};
     if($('#syncOn'))$('#syncOn').onclick=()=>confirmSheet('Đưa toàn bộ dữ liệu của máy này lên mạng để dùng chung?','Bật đồng bộ',async()=>{await syncEnable();render()});
     if($('#syncJoin'))$('#syncJoin').onclick=openJoin;
