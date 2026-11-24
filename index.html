@@ -987,7 +987,7 @@ async function billCanvas(o){
   const wrap=(t,font,max)=>{m.font=font;const w=String(t).split(' '),L=[];let cur='';w.forEach(x=>{const n=cur?cur+' '+x:x;if(m.measureText(n).width>max&&cur){L.push(cur);cur=x}else cur=n});if(cur)L.push(cur);return L};
   const d=new Date(o.at),p2=n=>String(n).padStart(2,'0'),cu=C(o.cid);
   const head=[settings.addr?wrap(settings.addr,'400 22px '+F,IW-40):[],settings.phone?['ĐT: '+settings.phone]:[]].flat();
-  const info=[['Số hóa đơn',o.id],['Ngày mua',`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`],['Giờ mua',`${p2(d.getHours())}:${p2(d.getMinutes())}`],['Khách hàng',cu?.name||o.name||'Khách lẻ']];
+  const info=[['Số hóa đơn',o.id],['Thời gian',`${p2(d.getHours())}:${p2(d.getMinutes())} · ${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`],['Khách hàng',cu?.name||o.name||'Khách lẻ']];
   if(cu?.phone)info.push(['Điện thoại',cu.phone]);
   info.push(['Thanh toán',o.status==='new'?'Ghi nợ (chưa trả)':o.status==='cancel'?'Đã hủy':(PAY[o.pay]||'Tiền mặt')]);
   const NF='600 25px '+F,cols={q:W-PAD-300,u:W-PAD-150,t:W-PAD};
