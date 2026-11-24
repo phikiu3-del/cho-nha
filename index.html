@@ -298,9 +298,28 @@ body.has-bill .view{padding-bottom:84px}
 :root:not([data-fx="off"]) .hero-deco{animation:sway 4.5s ease-in-out infinite alternate}
 @keyframes sway{from{transform:rotate(-14deg) translateY(0)}to{transform:rotate(-4deg) translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){.hero-deco{animation:none!important}}
-.hero>*:not(.hero-deco):not(.xmas):not(.snowcap):not(.hero-sparkle){position:relative;z-index:1}
+.hero>*:not(.hero-deco):not(.xmas):not(.snowcap):not(.hero-sparkle):not(.aqua){position:relative;z-index:1}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
 #snow{position:fixed;inset:0;pointer-events:none;z-index:1}
+.aqua{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit;container-type:inline-size}
+.aqua .fish{position:absolute;left:0;top:var(--y);width:var(--w);animation:swim var(--d) linear infinite;animation-delay:var(--dl);will-change:transform;filter:drop-shadow(0 3px 4px rgba(0,0,0,.18))}
+.aqua .fish.rev{animation-direction:reverse}
+.aqua .fish.rev .fb{transform:scaleX(-1)}
+.aqua .fb{animation:bob 2.8s ease-in-out infinite alternate}
+.aqua .fish.rev .fb{animation-name:bobr}
+.aqua .fish svg{display:block;width:100%;height:auto;overflow:visible}
+.aqua .tail{transform-box:view-box;transform-origin:19px 18px;animation:wag .55s ease-in-out infinite alternate}
+.aqua .fin{transform-box:view-box;transform-origin:31px 25px;animation:wag .7s ease-in-out infinite alternate-reverse}
+@keyframes swim{from{transform:translateX(-70px)}to{transform:translateX(calc(100cqw + 20px))}}
+@keyframes bob{from{transform:translateY(-3px) rotate(-2deg)}to{transform:translateY(4px) rotate(2deg)}}
+@keyframes bobr{from{transform:scaleX(-1) translateY(-3px) rotate(-2deg)}to{transform:scaleX(-1) translateY(4px) rotate(2deg)}}
+@keyframes wag{from{transform:rotate(-14deg) scaleY(.94)}to{transform:rotate(14deg) scaleY(1.04)}}
+.aqua .bub{position:absolute;bottom:-10px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;border:1px solid rgba(255,255,255,.55);background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.7),rgba(255,255,255,.08) 60%);animation:rise var(--d) ease-in infinite;animation-delay:var(--dl)}
+@keyframes rise{0%{transform:translate(0,0);opacity:0}10%{opacity:.9}100%{transform:translate(var(--dx),-170px);opacity:0}}
+.aqua .weed{position:absolute;bottom:-4px;width:14px;height:46px;transform-origin:50% 100%;animation:sway2 3.6s ease-in-out infinite alternate;opacity:.55}
+@keyframes sway2{from{transform:rotate(-6deg)}to{transform:rotate(7deg)}}
+:root[data-fx="off"] .aqua{display:none}
+@media (prefers-reduced-motion:reduce){.aqua *{animation-play-state:paused!important}}
 :root[data-skin="noel"] body{background-image:radial-gradient(900px 420px at 50% -120px,rgba(190,30,50,.10),transparent 70%),radial-gradient(700px 380px at 110% 35%,rgba(20,120,70,.09),transparent 70%),radial-gradient(600px 360px at -10% 75%,rgba(212,160,40,.08),transparent 70%);background-attachment:fixed}
 @media (prefers-color-scheme:dark){:root[data-skin="noel"]:not([data-theme="light"]) body{background-image:radial-gradient(900px 420px at 20% -80px,rgba(40,190,130,.20),transparent 70%),radial-gradient(800px 420px at 100% 0,rgba(120,90,230,.16),transparent 70%),radial-gradient(700px 400px at 50% 110%,rgba(190,30,50,.14),transparent 70%)}}
 :root[data-skin="noel"][data-theme="dark"] body{background-image:radial-gradient(900px 420px at 20% -80px,rgba(40,190,130,.20),transparent 70%),radial-gradient(800px 420px at 100% 0,rgba(120,90,230,.16),transparent 70%),radial-gradient(700px 400px at 50% 110%,rgba(190,30,50,.14),transparent 70%)}
@@ -627,7 +646,20 @@ function occasion(d=new Date()){const day=864e5,t=new Date(d.getFullYear(),d.get
   if(near(TET,14,8))return 'tet';if(near(TRUNGTHU,10,1))return 'trungthu';
   if(in_(1215,1226))return 'noel';if(in_(210,214))return 'valentine';if(in_(305,308)||in_(1017,1020))return 'phunu';if(in_(528,601))return 'thieunhi';if(in_(829,902))return 'quockhanh';if(in_(1025,1031))return 'halloween';return 'none'}
 function curStyle(){const k=settings.style||'none';return k==='auto'?occasion():(STYLES[k]&&STYLES[k].c?k:'none')}
-function heroExtra(sk){const S=STYLES[sk]||{};let h=S.deco?`<span class="hero-deco" aria-hidden="true">${S.deco}</span>`:'';
+const FISH=[['#ffb347','#ff6a00','#ffd08a'],['#ffffff','#ff4b3e','#ffe2dc'],['#ffe27a','#f2a900','#fff3c4'],['#ff9a6b','#e2361c','#ffc7a8']];
+function fishSVG(i){const [a,b,t]=FISH[i%FISH.length],g='fg'+i,k='ft'+i;return `<svg viewBox="0 0 64 36"><defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient><linearGradient id="${k}" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="${b}" stop-opacity=".95"/><stop offset="1" stop-color="${t}" stop-opacity=".35"/></linearGradient></defs>
+<g class="tail"><path d="M20 18C12 8 6 2 1 1c3 6 5 10 5 14-4 1-5 2-5 3s1 2 5 3c0 4-2 8-5 14 5-1 11-7 19-17z" fill="url(#${k})"/><path d="M19 18C11 11 6 6 3 4M19 18C11 25 6 30 3 32M19 18H3" stroke="${t}" stroke-opacity=".5" stroke-width=".6" fill="none"/></g>
+<path d="M27 9c3-7 11-8 16-3-5 0-10 1-16 3z" fill="url(#${k})"/>
+<ellipse cx="35" cy="18" rx="17" ry="11.5" fill="url(#${g})"/>
+<ellipse cx="38" cy="13.5" rx="10" ry="4" fill="#fff" opacity=".28"/>
+<path d="M44 10c-2.5 4-2.5 12 0 16" stroke="${b}" stroke-opacity=".45" stroke-width="1" fill="none"/>
+<g class="fin"><path d="M31 25c-2 5-6 8-9 7 2-3 5-5 9-7z" fill="url(#${k})"/></g>
+<circle cx="46.5" cy="15.5" r="2.8" fill="#fff"/><circle cx="47.2" cy="15.6" r="1.6" fill="#1b1b1f"/><circle cx="47.7" cy="15" r=".5" fill="#fff"/>
+<path d="M51.5 20.5q-1.3 1-2.6.4" stroke="${b}" stroke-width=".8" fill="none" stroke-linecap="round"/></svg>`}
+function aquaHTML(){const F=[{y:'46%',w:'46px',d:'17s',dl:'-3s',r:0,c:0},{y:'64%',w:'34px',d:'23s',dl:'-14s',r:1,c:1},{y:'30%',w:'28px',d:'27s',dl:'-8s',r:0,c:2},{y:'74%',w:'40px',d:'20s',dl:'-18s',r:1,c:3}];
+  const B=[[12,6,7,-1,8],[34,4,9,-5,4],[58,7,8,-3,10],[81,5,10,-6,6],[70,3,7,-2,1]];
+  return `<div class="aqua" aria-hidden="true"><svg class="weed" style="left:6%" viewBox="0 0 14 46"><path d="M7 46C2 36 12 28 6 18S9 6 7 0" stroke="#7fe0a8" stroke-width="3" fill="none" stroke-linecap="round"/></svg><svg class="weed" style="left:10%;height:34px;animation-delay:-1.5s" viewBox="0 0 14 46"><path d="M7 46C12 36 2 28 8 18S5 6 7 0" stroke="#5cc98d" stroke-width="3" fill="none" stroke-linecap="round"/></svg>${B.map(([x,s2,d,dx,dl])=>`<span class="bub" style="--x:${x}%;--s:${s2}px;--d:${d}s;--dx:${dx}px;--dl:-${dl}s"></span>`).join('')}${F.map((f,i)=>`<div class="fish${f.r?' rev':''}" style="--y:${f.y};--w:${f.w};--d:${f.d};--dl:${f.dl}"><div class="fb">${fishSVG(f.c)}</div></div>`).join('')}</div>`}
+function heroExtra(sk){const S=STYLES[sk]||{};let h=aquaHTML()+(S.deco?`<span class="hero-deco" aria-hidden="true">${S.deco}</span>`:'');
   if(sk==='noel'){const C=['#ff4d5e','#ffd34d','#4de3a0','#5cb8ff','#ff8ad8','#ffa64d'],pts=[];for(let k=0;k<4;k++)pts.push([6.25+25*k,12],[12.5+25*k,14],[18.75+25*k,12]);
     h+=`<span class="hero-sparkle" aria-hidden="true"></span><svg class="snowcap" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H100V7C96 10 93 6 89 8S82 12 78 8 71 5 67 9 60 12 55 8 47 5 43 9 36 12 31 8 24 5 20 9 12 12 8 8 2 6 0 8Z" fill="#fff" opacity=".96"/></svg><div class="xmas" aria-hidden="true"><svg viewBox="0 0 100 24" preserveAspectRatio="none"><path d="M0 6Q12.5 22 25 6T50 6T75 6T100 6" fill="none" stroke="rgba(30,30,30,.55)" stroke-width=".6" vector-effect="non-scaling-stroke"/></svg>${pts.map((q,i)=>`<i style="left:${q[0]}%;top:${q[1]+5}px;--b:${C[i%C.length]};--dl:-${(i*0.37%2.4).toFixed(2)}s"></i>`).join('')}</div>`}
   return h}
@@ -661,7 +693,7 @@ function applyAccent(){
   if(S.c){de.style.setProperty('--st-bg',S.bg[0]);de.style.setProperty('--st-bgd',S.bg[1]);de.style.setProperty('--st-hero',S.hero)}
   const mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.content=getComputedStyle(document.body).backgroundColor||mt.content;
   applyFx(sk);
-  const hd=document.querySelector('.hero');if(hd&&hd.dataset.sk!==sk){hd.dataset.sk=sk;hd.querySelectorAll('.hero-deco,.xmas,.snowcap,.hero-sparkle').forEach(e=>e.remove());hd.insertAdjacentHTML('afterbegin',heroExtra(sk))}
+  const hd=document.querySelector('.hero');if(hd&&hd.dataset.sk!==sk){hd.dataset.sk=sk;hd.querySelectorAll('.hero-deco,.xmas,.snowcap,.hero-sparkle,.aqua').forEach(e=>e.remove());hd.insertAdjacentHTML('afterbegin',heroExtra(sk))}
   $('#shopName').textContent=settings.shop||'ODin Goldfish';document.title=settings.shop||'ODin Goldfish';
   const lg=$('#shopLogo');lg.hidden=!settings.logo;lg.innerHTML=settings.logo?`<img src="${settings.logo}" alt="">`:'';
 }
