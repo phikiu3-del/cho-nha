@@ -862,7 +862,7 @@ function openProduct(id){
   const draw=()=>{openSheet(p.name,`<div style="${tint(p)};border-radius:16px;display:grid;place-items:center;aspect-ratio:16/9;overflow:hidden" class="hero-pic">${pic(p,true)}</div>
     <div class="row"><span class="price num" style="font-size:28px">${fmt(p.price)}</span>${p.old?`<span class="old num">${fmt(p.old)}</span>`:''}</div>
     <div class="group">
-      <div class="cell"><span class="grow">Quy cách</span><span class="r">${esc(p.unit)}</span></div>
+      <div class="cell"><span class="grow">Đơn vị</span><span class="r">${esc(p.unit)}</span></div>
       <div class="cell"><span class="grow">Tồn kho</span><span class="r ${!p.service&&p.stock<5?'low':''}">${p.service?'Dịch vụ':p.stock}</span></div>
       <div class="cell"><span class="grow">Giá nhập</span><span class="r num">${p.cost?fmt(p.cost):'—'}</span></div>
       <div class="cell"><span class="grow">Đã bán</span><span class="r num">${p.sold.toLocaleString('vi-VN')}</span></div>
