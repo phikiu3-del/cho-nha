@@ -607,6 +607,20 @@ async function syncEnable(){if(!navigator.onLine){toast('Cần có mạng để 
     await Promise.race([db.collection('shops').doc(code).collection('meta').doc('info').set(jclean(metaOf()),{merge:true}),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),15000))]);
     toast('Đang đưa dữ liệu lên…');await syncStart(code,'upload');toast('Đã bật đồng bộ')}
   catch(e){console.warn(e);syncStop();toast(e.message==='nocfg'?'Chưa kết nối máy chủ đồng bộ':e.code==='permission-denied'?'Máy chủ chưa mở quyền ghi dữ liệu':'Không kết nối được, thử lại sau')}}
+function homeIcon(n){return settings.logo?`<img src="${esc(settings.logo)}" alt="" style="width:${n}px;height:${n}px;border-radius:${Math.round(n*.23)}px;object-fit:cover;flex:none">`:`<span style="width:${n}px;height:${n}px;border-radius:${Math.round(n*.23)}px;background:#2f6fde;display:grid;place-items:center;flex:none"><svg viewBox="0 0 24 24" width="55%" height="55%" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></span>`}
+function joinLink(){return location.origin+location.pathname+'?join='+syncCfg.code}
+function openIconHelp(){sheetMode='iconhelp';
+  openSheet('Đổi biểu tượng',`<div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 14px">${homeIcon(84)}<b style="font-size:15px">${esc(settings.shop||'Cửa hàng')}</b></div>
+   <div class="hint" style="margin:0 4px 12px">Ảnh và tên lấy theo phần Ảnh đại diện và Tên cửa hàng trong Cài đặt. Đổi xong thì thêm lại biểu tượng như sau:</div>
+   ${syncCfg?`<div class="steps"><div><span>1</span><p>Bấm <b>Chép link</b> ở dưới.</p></div><div><span>2</span><p>Mở <b>Safari</b>, dán link vào ô địa chỉ rồi mở. Dữ liệu cửa hàng tự tải về.</p></div><div><span>3</span><p>Bấm nút <b>Chia sẻ</b> → <b>Thêm vào MH chính</b> → <b>Thêm</b>.</p></div><div><span>4</span><p>Mở biểu tượng mới, kiểm tra đủ hàng và đơn. Nếu máy hỏi mã thì nhập <b class="num">${fmtCode(syncCfg.code)}</b>.</p></div><div><span>5</span><p>Lúc đó mới xóa biểu tượng cũ.</p></div></div>`
+   :`<div class="notice warn" style="margin:0 0 12px"><span class="ic" style="background:color-mix(in srgb,var(--expense) 14%,transparent)">⚠️</span><div class="grow"><b>Bật đồng bộ trước</b><div class="s">Biểu tượng mới là một app riêng, không có sẵn dữ liệu. Có đồng bộ thì dữ liệu tự về đủ.</div></div></div>`}`,
+   syncCfg?`<button class="btn" id="ihCopy" style="width:100%">Chép link</button>`:`<button class="btn" id="ihSync" style="width:100%">Bật đồng bộ</button>`);
+  if($('#ihCopy'))$('#ihCopy').onclick=()=>{copyText(joinLink());toast('Đã chép link, mở Safari để dán')};
+  if($('#ihSync'))$('#ihSync').onclick=()=>confirmSheet('Đưa toàn bộ dữ liệu của máy này lên mạng để dùng chung?','Bật đồng bộ',async()=>{await syncEnable();render();openIconHelp()})}
+function joinFromLink(){const m=/[?&]join=([A-Za-z0-9-]+)/.exec(location.search);if(!m||syncCfg)return;const code=parseCode(m[1]);if(code.length!==12)return;
+  const go=async()=>{if(!navigator.onLine){toast('Cần có mạng để tải dữ liệu cửa hàng');return}toast('Đang tải dữ liệu cửa hàng…');
+    try{await syncStart(code,'join');closeSheet();toast('Đã tải đủ dữ liệu cửa hàng')}catch(e){console.warn(e);syncStop();toast(e.message==='notfound'?'Không tìm thấy cửa hàng với mã này':'Không tải được dữ liệu, thử lại')}};
+  if(products.length||orders.length)confirmSheet(`Dùng dữ liệu của cửa hàng mã ${fmtCode(code)}? Dữ liệu đang có trên máy này được lưu bản sao rồi thay bằng dữ liệu cửa hàng.`,'Dùng chung',go);else go()}
 function openJoin(){sheetMode='join';openSheet('Dùng chung cửa hàng',`<div class="field"><label for="jn-c">Mã cửa hàng</label><input id="jn-c" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" style="letter-spacing:.08em;font-weight:700"><span class="msg"></span></div>
    <button class="btn ghost" id="jnScan">${SCAN_IC} Quét mã QR ở máy kia</button>
    <div class="notice warn"><span class="ic" style="background:color-mix(in srgb,var(--expense) 14%,transparent)">⚠️</span><div class="grow"><b>Dữ liệu trên máy này sẽ được thay bằng dữ liệu cửa hàng chung</b><span>App giữ 1 bản sao trong Bản sao tự động.</span></div></div>`,`<button class="btn" id="jnOk">Kết nối</button>`);
@@ -765,7 +779,7 @@ function applyAccent(){
   applyFx(sk);
   const hd=document.querySelector('.hero');if(hd&&hd.dataset.sk!==sk){hd.dataset.sk=sk;hd.querySelectorAll('.hero-deco,.xmas,.snowcap,.hero-sparkle,.aqua').forEach(e=>e.remove());hd.insertAdjacentHTML('afterbegin',heroExtra(sk))}
   $('#shopName').textContent=settings.shop||'Cửa hàng';document.title=settings.shop||'Cửa hàng';{const m=document.querySelector('meta[name="apple-mobile-web-app-title"]');if(m)m.content=settings.shop||'Cửa hàng'}
-  const lg=$('#shopLogo');lg.hidden=!settings.logo;lg.innerHTML=settings.logo?`<img src="${settings.logo}" alt="">`:'';
+  const lg=$('#shopLogo');lg.hidden=!settings.logo;lg.innerHTML=settings.logo?`<img src="${esc(settings.logo)}" alt="">`:'';
   setTouchIcon();
 }
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAccent)}catch(e){}
@@ -1378,9 +1392,10 @@ function openStockEdit(id){const p=P(id);if(!p)return;sheetMode='stk';
       moves.push({at,pid:p.id,qty:d,cost:p.cost||0,reason:'Kiểm kho'});p.stock=v;save();closeSheet();keepScroll(render);toast(`Đã sửa tồn ${p.name}: ${v}`)}};
   draw()}
 function rSettings(){
-  return `<div class="group-h">Ảnh đại diện cửa hàng</div><div class="group"><div class="av-edit"><div class="av-big">${settings.logo?`<img src="${settings.logo}" alt="Ảnh cửa hàng">`:esc((settings.shop||'C').trim().charAt(0).toUpperCase())}</div>
+  return `<div class="group-h">Ảnh đại diện cửa hàng</div><div class="group"><div class="av-edit"><div class="av-big">${settings.logo?`<img src="${esc(settings.logo)}" alt="Ảnh cửa hàng">`:esc((settings.shop||'C').trim().charAt(0).toUpperCase())}</div>
    <div class="av-btns"><label>🖼️ Chọn ảnh trong máy<input type="file" accept="image/*" class="logo-in" hidden></label><label>📷 Chụp ảnh<input type="file" accept="image/*" capture="environment" class="logo-in" hidden></label>${settings.logo?'<button class="rm" id="logoRm">Xóa ảnh</button>':''}</div></div></div>
   <div class="group-h">Tên cửa hàng</div><div class="group"><div class="cell"><input id="set-shop" value="${esc(settings.shop)}" style="border:0;background:none;width:100%;padding:0" aria-label="Tên cửa hàng"></div></div>
+  <div class="group-h">Biểu tượng ngoài màn hình</div><div class="group"><button class="cell" id="iconHelp">${homeIcon(48)}<span class="grow"><span class="t" style="display:block">${esc(settings.shop||'Cửa hàng')}</span><span class="s" style="display:block">Lấy theo ảnh đại diện và tên cửa hàng</span></span><span class="r" style="color:var(--brand);font-weight:600">Đổi</span>${CHEV}</button></div>
   <div class="group-h">Thông tin trên hóa đơn</div><div class="group form-list"><label class="frow"><span>Điện thoại</span><input id="set-phone" type="tel" inputmode="tel" value="${esc(settings.phone||'')}" placeholder="Số điện thoại tiệm"></label><label class="frow"><span>Địa chỉ</span><input id="set-addr" value="${esc(settings.addr||'')}" placeholder="Địa chỉ tiệm"></label></div>
   ${!(FB_CONFIG||window.FB_TEST)&&!syncCfg?'':`<div class="group-h">Dùng chung nhiều máy</div>${syncCfg?`<div class="group"><div class="cell"><span class="ic" style="background:var(--brand-soft)">🔄</span><span class="grow"><span class="t" style="display:block">Đồng bộ đang bật</span><span id="syncStat" class="s ${SY.status==='ok'?'inc':''}" style="display:block">${SYNC_LABEL[SY.status]||''}</span></span></div>
    <div class="sync-code"><div id="syncQR"></div><div><div class="s">Mã cửa hàng</div><b class="num">${fmtCode(syncCfg.code)}</b><button class="link" id="syncCopy">Chép mã</button></div></div>
@@ -1417,6 +1432,7 @@ function bindReport(){
     $('#fxOn').onchange=e=>{settings.fx=e.target.checked;save();applyAccent()};
     ['phone','addr'].forEach(k=>{const i=$('#set-'+k);if(i)i.onchange=e=>{const v=e.target.value.trim();if(v)settings[k]=v;else delete settings[k];save();toast('Đã lưu')}});
     $('#set-shop').onchange=e=>{settings.shop=e.target.value.trim()||'Cửa hàng';save();applyAccent();toast('Đã đổi tên cửa hàng')};
+    if($('#iconHelp'))$('#iconHelp').onclick=openIconHelp;
     if($('#syncOn'))$('#syncOn').onclick=()=>confirmSheet('Đưa toàn bộ dữ liệu của máy này lên mạng để dùng chung?','Bật đồng bộ',async()=>{await syncEnable();render()});
     if($('#syncJoin'))$('#syncJoin').onclick=openJoin;
     if($('#syncOff'))$('#syncOff').onclick=()=>confirmSheet('Ngừng đồng bộ trên máy này? Dữ liệu hiện có vẫn giữ trong máy, nhưng sẽ không nhận đơn mới từ máy khác nữa.','Ngừng',()=>{syncStop();render()});
@@ -1695,7 +1711,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-backup],[d
 window.addEventListener('hashchange',route);
 document.addEventListener('change',e=>{const id=e.target.id,v=e.target.value;if(!v)return;
   if(id==='oPick'){st.oAt=parseD(v);keepScroll(render)}else if(id==='pPick'){st.pAt=parseD(v);keepScroll(render)}else if(id==='oFrom'){st.oFrom=parseD(v);keepScroll(render)}else if(id==='oTo'){st.oTo=parseD(v);keepScroll(render)}});
-backfillBuys();applyAccent();route();boot().then(()=>{if(syncCfg)syncStart(syncCfg.code,'resume').catch(e=>{console.warn(e);setSync('error')})});
+backfillBuys();applyAccent();route();boot().then(()=>{if(syncCfg)syncStart(syncCfg.code,'resume').catch(e=>{console.warn(e);setSync('error')});else joinFromLink()});
 </script>
 
 <script>if('serviceWorker' in navigator){const had=!!navigator.serviceWorker.controller;let done=false;
