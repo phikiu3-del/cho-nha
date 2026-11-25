@@ -729,7 +729,8 @@ function startSnow(){if(SNOW||matchMedia('(prefers-reduced-motion: reduce)').mat
   let raf;const tick=()=>{raf=requestAnimationFrame(tick);if(document.hidden)return;if(c.width!==Math.round(innerWidth*dpr))fit();x.clearRect(0,0,W,H);const pal=dark()?DARK:LIGHT;
     for(const f of F){f.ph+=f.ps;f.y+=f.vy;f.x+=Math.sin(f.ph)*f.amp;f.rot+=f.vr;if(f.y>H+16){Object.assign(f,mk(false))}if(f.x<-16)f.x=W+16;else if(f.x>W+16)f.x=-16;
       x.globalAlpha=(dark()?.5:.42)+f.z*.35;f.cr?crystal(f,pal[f.ci]):dot(f,pal[f.ci])}x.globalAlpha=1};tick();
-  SNOW={stop(){cancelAnimationFrame(raf);c.remove();SNOW=null}}}
+  const kick=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)},off=onResume(kick);
+  SNOW={stop(){cancelAnimationFrame(raf);off();c.remove();SNOW=null}}}
 let RAIN=null;
 function startRain(){if(RAIN||matchMedia('(prefers-reduced-motion: reduce)').matches)return;const c=document.createElement('canvas');c.id='rain';c.setAttribute('aria-hidden','true');document.body.prepend(c);const x=c.getContext('2d');
   const dpr=Math.min(2,devicePixelRatio||1);let W=0,H=0;const fit=()=>{W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)};fit();
@@ -748,14 +749,49 @@ function startRain(){if(RAIN||matchMedia('(prefers-reduced-motion: reduce)').mat
     if(flash>0){x.fillStyle=dk?`rgba(200,220,255,${flash*.10})`:`rgba(255,255,255,${flash*.22})`;x.fillRect(0,0,W,H);flash-=.045}
     if(bolt){bolt.t++;const a=bolt.t<4?1:bolt.t<7?.25:bolt.t<10?.9:Math.max(0,1-(bolt.t-10)/14);if(a<=0)bolt=null;else{x.save();x.globalAlpha=a*(dk?.9:.8);x.lineJoin='round';
       const col=dk?'#cfe0ff':'#7aa7ff';path(bolt.pts,3.2,col,18);path(bolt.br,1.6,col,10);path(bolt.pts,1.2,'#fff',0);x.restore()}}};raf=requestAnimationFrame(tick);
-  RAIN={stop(){cancelAnimationFrame(raf);c.remove();RAIN=null}}}
+  const kick=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)},off=onResume(kick);
+  RAIN={stop(){cancelAnimationFrame(raf);off();c.remove();RAIN=null}}}
+let FALL=null;
+function onResume(fn){const h=()=>{if(!document.hidden)fn()};document.addEventListener('visibilitychange',h);addEventListener('pageshow',h);addEventListener('focus',h);return()=>{document.removeEventListener('visibilitychange',h);removeEventListener('pageshow',h);removeEventListener('focus',h)}}
+function startFall(list){if(FALL)FALL.stop();if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const c=document.createElement('canvas');c.id='fx';c.setAttribute('aria-hidden','true');c.style.cssText='width:100%;height:100%';document.body.prepend(c);const x=c.getContext('2d');
+  const dpr=Math.min(2,devicePixelRatio||1);let W=0,H=0;const fit=()=>{W=innerWidth;H=innerHeight;c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);x.setTransform(dpr,0,0,dpr,0,0)};fit();
+  const dark=()=>{const t=document.documentElement.dataset.theme;return t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches)};
+  const isSnow=e=>e==='❄️'||e==='❄',snowy=list.every(isSnow),cache={};
+  const sprite=(kind,dk)=>{const k=kind+dk;if(cache[k])return cache[k];const S=64,o=document.createElement('canvas');o.width=o.height=S;const g=o.getContext('2d');
+    if(kind==='dot'){const r=g.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);const col=dk?'255,255,255':'150,178,205';r.addColorStop(0,`rgba(${col},1)`);r.addColorStop(.45,`rgba(${col},.75)`);r.addColorStop(1,`rgba(${col},0)`);g.fillStyle=r;g.fillRect(0,0,S,S)}
+    else if(kind==='flake'){g.translate(S/2,S/2);g.strokeStyle=dk?'#ffffff':'#8fb0cf';g.lineCap='round';g.lineWidth=3.2;g.shadowColor=dk?'rgba(255,255,255,.8)':'rgba(120,160,200,.5)';g.shadowBlur=6;
+      for(let i=0;i<6;i++){g.rotate(Math.PI/3);g.beginPath();g.moveTo(0,0);g.lineTo(0,-24);g.moveTo(0,-13);g.lineTo(7,-20);g.moveTo(0,-13);g.lineTo(-7,-20);g.stroke()}}
+    else{g.font='48px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(kind,S/2,S/2+3)}
+    return cache[k]=o};
+  const kindOf=()=>snowy?(Math.random()<.78?'dot':'flake'):list[Math.random()*list.length|0];
+  const mk=init=>{const z=Math.random(),k=kindOf(),dot=k==='dot',fl=k==='flake';
+    const size=dot?4+z*7:fl?9+z*11:13+z*15;
+    return{k,z,size,x:Math.random()*W,y:init?Math.random()*H:-size-Math.random()*40,vy:(dot||fl?18:26)+z*(dot||fl?34:40),
+      sw:6+z*18,sf:.4+Math.random()*.7,ph:Math.random()*6.28,rot:Math.random()*6.28,vr:(Math.random()-.5)*(fl?.6:1.1),a:(dot?.45:.55)+z*.4}};
+  const N=Math.round(Math.max(snowy?22:12,Math.min(snowy?44:22,W*H/(snowy?9000:20000))));
+  const P=[...Array(N)].map(()=>mk(true)).sort((a,b)=>a.z-b.z);
+  let raf=0,last=0,seen=performance.now();
+  const tick=t=>{raf=requestAnimationFrame(tick);seen=performance.now();const dt=last?Math.min(.05,(t-last)/1000):.016;last=t;
+    if(Math.round(innerWidth*dpr)!==c.width||Math.round(innerHeight*dpr)!==c.height)fit();
+    x.clearRect(0,0,W,H);const dk=dark();
+    for(const p of P){p.ph+=p.sf*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;const px=p.x+Math.sin(p.ph)*p.sw;
+      if(p.y>H+p.size){Object.assign(p,mk(false))}
+      if(p.x<-30)p.x=W+20;else if(p.x>W+30)p.x=-20;
+      const sp=sprite(p.k,dk),s2=p.size;x.globalAlpha=p.a*(p.k==='dot'||p.k==='flake'?1:.85);
+      if(p.k==='dot')x.drawImage(sp,px-s2/2,p.y-s2/2,s2,s2);
+      else{x.save();x.translate(px,p.y);x.rotate(p.rot*.35);x.drawImage(sp,-s2/2,-s2/2,s2,s2);x.restore()}}
+    x.globalAlpha=1};
+  const kick=()=>{cancelAnimationFrame(raf);last=0;raf=requestAnimationFrame(tick)};
+  const off=onResume(kick),wd=setInterval(()=>{if(!document.hidden&&performance.now()-seen>1500)kick()},2000);kick();
+  FALL={stop(){cancelAnimationFrame(raf);clearInterval(wd);off();c.remove();FALL=null}}}
 let _fxKey=null;
 function applyFx(k){if(settings.fx===false)k='none';if(_fxKey===k)return;_fxKey=k;let fx=$('#fx');const S=STYLES[k];
   if(S&&S.snow)startSnow();else if(SNOW)SNOW.stop();
   if(S&&S.rain)startRain();else if(RAIN)RAIN.stop();
-  if(!S||!S.fall){if(fx)fx.remove();return}
-  if(!fx){fx=document.createElement('div');fx.id='fx';fx.setAttribute('aria-hidden','true');document.body.prepend(fx)}
-  let h='';for(let i=0;i<14;i++){const e=S.fall[i%S.fall.length];h+=`<i style="left:${Math.round(Math.random()*100)}%;font-size:${12+Math.round(Math.random()*12)}px;animation-duration:${9+Math.random()*9}s;animation-delay:-${Math.random()*18}s;--dx:${Math.round(Math.random()*80-40)}px;--rot:${Math.round(Math.random()*360)}deg">${e}</i>`}fx.innerHTML=h}
+  if(fx&&fx.tagName!=='CANVAS')fx.remove();
+  if(!S||!S.fall){if(FALL)FALL.stop();return}
+  startFall(S.fall)}
 let _tiFor=null;
 function setTouchIcon(){const src=settings.logo||'';if(_tiFor===src)return;_tiFor=src;
   let l=document.querySelector('link[rel="apple-touch-icon"]');if(!l){l=document.createElement('link');l.rel='apple-touch-icon';document.head.appendChild(l)}
