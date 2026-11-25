@@ -1022,9 +1022,9 @@ function oLabel(a,b){const f=t=>{const d=new Date(t);return String(d.getDate()).
   if(st.op==='week')return f(a)+' – '+f(b-1)+'/'+new Date(b-1).getFullYear();
   return 'Tháng '+(new Date(a).getMonth()+1)+'/'+new Date(a).getFullYear()}
 function orderCell(o){const c=o.cid&&C(o.cid);
-  return `<button class="cell" data-order="${o.id}"><div class="grow"><div class="t">${esc(c?c.name:o.name)} <span class="pill ${STATUS[o.status][1]}">${STATUS[o.status][0]}</span></div>
-  <div class="s">${new Date(o.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit'})} · ${o.id} · ${o.items.map(i=>P(i.id)?.emoji||'').join('')}</div></div>
-  <div class="r"><div class="big num ${o.status==='cancel'?'hint':''}" style="${o.status==='cancel'?'text-decoration:line-through':''}">${fmt(orderTotal(o))}</div><div class="s">${PAY[o.pay]}</div></div>${CHEV}</button>`}
+  return `<button class="cell" data-order="${o.id}"><div class="grow"><div class="t">${esc(c?c.name:o.name)}</div>
+  <div class="s">${new Date(o.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit'})} · ${o.id} · ${PAY[o.pay]} · ${o.items.map(i=>P(i.id)?.emoji||'').join('')}</div></div>
+  <div class="r"><div class="big num ${o.status==='cancel'?'hint':''}" style="${o.status==='cancel'?'text-decoration:line-through':''}">${fmt(orderTotal(o))}</div><span class="pill ${STATUS[o.status][1]}" style="margin-top:4px">${STATUS[o.status][0]}</span></div>${CHEV}</button>`}
 function vOrders(){
   const F={all:'Tất cả',new:'Ghi nợ',ship:'Đang giao',done:'Đã thu',cancel:'Đã hủy'},q=norm(st.q.trim());
   const [from,to]=oRange();
