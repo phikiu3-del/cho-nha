@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ODin Goldfish</title>
+<title>Cửa hàng</title>
 <meta name="description" content="Sổ bán hàng cá nhân: bán hàng, đơn hàng, khách nợ, thu chi, báo cáo.">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ODin Goldfish">
+<meta name="apple-mobile-web-app-title" content="Cửa hàng">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -385,7 +385,7 @@ body.has-bill .view{padding-bottom:84px}
 
 <header class="top"><div class="wrap">
   <div class="title-row">
-    <div style="min-width:0;display:flex;align-items:center;gap:12px"><button class="logo" id="shopLogo" data-go="settings" aria-label="Cài đặt cửa hàng" hidden></button><div style="min-width:0"><div class="shopname" id="shopName">ODin Goldfish</div><h1 class="lt" id="viewTitle">Bán hàng</h1></div></div>
+    <div style="min-width:0;display:flex;align-items:center;gap:12px"><button class="logo" id="shopLogo" data-go="settings" aria-label="Cài đặt cửa hàng" hidden></button><div style="min-width:0"><div class="shopname" id="shopName">Cửa hàng</div><h1 class="lt" id="viewTitle">Bán hàng</h1></div></div>
     <div style="display:flex;gap:8px" id="topActions"></div>
   </div>
   <div class="search" id="searchBox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Tìm sản phẩm, dịch vụ" aria-label="Tìm kiếm"></div>
@@ -499,11 +499,13 @@ let debtPays=store.get('debtPays',null)||[];
 let pcats=store.get('pcats',null)||[];
 const SYS_CCATS=()=>structuredClone(SEED_CCATS.filter(c=>c.sys));
 let ccats=store.get('ccats',null)||SYS_CCATS();
-let settings=store.get('settings',null)||{shop:'ODin Goldfish',accent:'green',bin:'',acc:'',accName:''};
+const _hadSettings=!!store.get('settings',null)||['products','orders','customers','moves','cash'].some(k=>{const v=store.get(k,null);return Array.isArray(v)&&v.length>0});
+let settings=store.get('settings',null)||{shop:'Cửa hàng',accent:'blue',bin:'',acc:'',accName:''};
 let cart=store.get('cart',{}),discount=store.get('discount',0),promoId=store.get('promo',null);
 if(!Array.isArray(settings.promos))settings.promos=[];
 if(!settings.since)settings.since=Date.now();
-if(!settings.shop||settings.shop==='Chợ Nhà')settings.shop='ODin Goldfish';
+if(_hadSettings){if(!settings.shop||settings.shop==='Chợ Nhà')settings.shop='ODin Goldfish';if(!settings.accent)settings.accent='green'}
+if(!settings.shop)settings.shop='Cửa hàng';
 /* ---- An toàn dữ liệu: lưu kép localStorage + IndexedDB, bản sao tự động, sao lưu ra file ---- */
 const SCHEMA=1;
 const idb={p:null,ok:false,open(){return this.p||(this.p=new Promise((res,rej)=>{try{const r=indexedDB.open('chonha',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.ok=true;res(r.result)};r.onerror=()=>rej(r.error)}catch(e){rej(e)}}))},
@@ -522,7 +524,7 @@ function migrate(d){d=d||{};d.schema=d.schema||1;/* nâng cấp cấu trúc dữ
   for(const k of ['pcats','products','orders','customers','cash','moves','debtPays'])if(!Array.isArray(d[k]))d[k]=[];
   if(!Array.isArray(d.ccats)||!d.ccats.length)d.ccats=SYS_CCATS();
   for(const c of SYS_CCATS())if(!d.ccats.some(x=>x.name===c.name))d.ccats.push(c);
-  d.settings=Object.assign({shop:'ODin Goldfish',accent:'green',bin:'',acc:'',accName:''},d.settings||{});return d}
+  d.settings=Object.assign({shop:'Cửa hàng',accent:'green',bin:'',acc:'',accName:''},d.settings||{});return d}
 function validSnap(d){return d&&typeof d==='object'&&d.app==='cho-nha'&&Array.isArray(d.products)&&Array.isArray(d.orders)}
 function applySnap(d){d=migrate(structuredClone(d));({pcats,ccats,products,orders,customers,cash,moves,debtPays,settings}=d);backfillBuys();cart={};discount=0;st.cat='Tất cả';save();applyAccent();render();renderBill()}
 function countsOf(d){return `${d.products.length} sản phẩm · ${d.orders.length} đơn · ${d.customers.length} khách`}
@@ -633,7 +635,7 @@ async function backupFile(){const name=fileName(),txt=JSON.stringify(snapshot())
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);markBackup()}
 function markBackup(){settings.lastBackup=Date.now();save();render();toast('Đã tạo file sao lưu')}
 function restoreFile(file){const r=new FileReader();r.onload=()=>{let d;try{d=JSON.parse(r.result)}catch(e){d=null}
-  if(!validSnap(d)){toast('File này không phải bản sao lưu ODin Goldfish');return}d=migrate(d);
+  if(!validSnap(d)){toast('File này không phải bản sao lưu của app');return}d=migrate(d);
   confirmSheet(`Khôi phục bản sao lưu ngày ${new Date(d.at).toLocaleString('vi-VN')} (${countsOf(d)})? Dữ liệu hiện tại sẽ được thay thế, nhưng app vẫn giữ một bản sao trong "Bản sao tự động" để lấy lại nếu cần.`,'Khôi phục',async()=>{await keepSnap('Trước khi khôi phục');applySnap(d);toast('Đã khôi phục dữ liệu')})};r.readAsText(file)}
 async function openSnaps(){let list=[];try{list=(await idb.get('snaps'))||[]}catch(e){}
   sheetMode='snaps';openSheet('Bản sao tự động',list.length?`<p class="hint" style="margin:0 4px">App tự giữ bản sao mỗi ngày (7 ngày gần nhất) và trước mỗi lần xóa hay khôi phục. Các bản này nằm trong máy, nên vẫn cần sao lưu ra file.</p><div class="group">${list.map((x,i)=>`<button class="cell" data-snap="${i}"><span class="ic" style="background:var(--brand-soft)">${x.kind==='day'?'🗓️':'🛟'}</span><span class="grow"><span class="t" style="display:block">${x.kind==='day'?'Cuối ngày '+new Date(x.at).toLocaleDateString('vi-VN'):esc(x.label)+' · '+new Date(x.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</span><span class="s" style="display:block">${countsOf(migrate(structuredClone(x.data)))}</span></span>${CHEV}</button>`).join('')}</div>`:`<div class="first"><div style="font-size:40px">🛟</div><b>Chưa có bản sao nào</b><span class="hint">App bắt đầu giữ bản sao từ ngày thứ hai bạn dùng, và trước mỗi lần xóa hay khôi phục.</span></div>`);
@@ -645,7 +647,7 @@ function notices(){let h='';const now=Date.now();
   const last=settings.lastBackup||settings.since||now;
   if(hasData()&&now-last>7*D&&!(settings.backupHide>now))h+=`<div class="notice warn"><span class="ic" style="background:color-mix(in srgb,var(--expense) 14%,transparent)">💾</span><div class="grow"><b>${settings.lastBackup?'Đã '+Math.floor((now-last)/D)+' ngày chưa sao lưu':'Chưa sao lưu lần nào'}</b><span>Lưu 1 file ra Tệp hoặc iCloud để không bao giờ mất dữ liệu.</span></div><button class="btn sm" data-backup>Sao lưu</button><button class="x" data-hide="backup" aria-label="Để sau">✕</button></div>`;
   return h}
-function openInstall(){sheetMode='install';openSheet('Thêm vào màn hình chính',`<div class="steps"><div><span>1</span><p>Mở trang này bằng <b>Safari</b>.</p></div><div><span>2</span><p>Bấm nút <b>Chia sẻ</b> <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg> ở thanh dưới cùng.</p></div><div><span>3</span><p>Kéo xuống, chọn <b>Thêm vào MH chính</b>, rồi bấm <b>Thêm</b>.</p></div><div><span>4</span><p>Từ giờ mở app bằng biểu tượng <b>ODin Goldfish</b> trên màn hình chính.</p></div></div><p class="hint" style="margin:4px">Dữ liệu ở trong máy này. Nếu xóa biểu tượng app hoặc xóa dữ liệu Safari thì dữ liệu sẽ mất, nên thỉnh thoảng hãy vào Cài đặt (bánh răng góc trên) › Sao lưu ra file.</p>`)}
+function openInstall(){sheetMode='install';openSheet('Thêm vào màn hình chính',`<div class="steps"><div><span>1</span><p>Mở trang này bằng <b>Safari</b>.</p></div><div><span>2</span><p>Bấm nút <b>Chia sẻ</b> <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg> ở thanh dưới cùng.</p></div><div><span>3</span><p>Kéo xuống, chọn <b>Thêm vào MH chính</b>, rồi bấm <b>Thêm</b>.</p></div><div><span>4</span><p>Từ giờ mở app bằng biểu tượng <b>${esc(settings.shop||'Cửa hàng')}</b> trên màn hình chính.</p></div></div><p class="hint" style="margin:4px">Dữ liệu ở trong máy này. Nếu xóa biểu tượng app hoặc xóa dữ liệu Safari thì dữ liệu sẽ mất, nên thỉnh thoảng hãy vào Cài đặt (bánh răng góc trên) › Sao lưu ra file.</p>`)}
 let st={view:'',cat:'Tất cả',q:'',ofilter:'all',op:'all',oAt:Date.now(),oFrom:null,oTo:null,month:null,day:dayStart(),range:7,pp:'month',pAt:Date.now(),rtab:(()=>{try{return localStorage.getItem('chonha4_ui_rtab')||'overview'}catch(e){return 'overview'}})()};
 const P=id=>products.find(p=>p.id===id),C=id=>customers.find(c=>c.id===id);
 const PC=n=>pcats.find(c=>c.name===n),CC=n=>ccats.find(c=>c.name===n);
@@ -746,6 +748,11 @@ function applyFx(k){if(settings.fx===false)k='none';if(_fxKey===k)return;_fxKey=
   if(!S||!S.fall){if(fx)fx.remove();return}
   if(!fx){fx=document.createElement('div');fx.id='fx';fx.setAttribute('aria-hidden','true');document.body.prepend(fx)}
   let h='';for(let i=0;i<14;i++){const e=S.fall[i%S.fall.length];h+=`<i style="left:${Math.round(Math.random()*100)}%;font-size:${12+Math.round(Math.random()*12)}px;animation-duration:${9+Math.random()*9}s;animation-delay:-${Math.random()*18}s;--dx:${Math.round(Math.random()*80-40)}px;--rot:${Math.round(Math.random()*360)}deg">${e}</i>`}fx.innerHTML=h}
+let _tiFor=null;
+function setTouchIcon(){const src=settings.logo||'';if(_tiFor===src)return;_tiFor=src;
+  let l=document.querySelector('link[rel="apple-touch-icon"]');if(!l){l=document.createElement('link');l.rel='apple-touch-icon';document.head.appendChild(l)}
+  if(!src){l.href='icon-180.png';return}
+  const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d'),r=Math.max(180/im.width,180/im.height),w=im.width*r,h=im.height*r;x.fillStyle='#fff';x.fillRect(0,0,180,180);x.drawImage(im,(180-w)/2,(180-h)/2,w,h);if(_tiFor===src)l.href=c.toDataURL('image/png')}catch(e){}};im.src=src}
 function applyAccent(){
   {const de=document.documentElement,want=settings.theme&&settings.theme!=='auto'?settings.theme:null;if(want){if(de.dataset.theme!==want){de.dataset.theme=want;window._thSet=1}}else if(window._thSet){window._thSet=0;delete de.dataset.theme}}
   const sk=curStyle(),S=STYLES[sk],de=document.documentElement;
@@ -757,8 +764,9 @@ function applyAccent(){
   const mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.content=getComputedStyle(document.body).backgroundColor||mt.content;
   applyFx(sk);
   const hd=document.querySelector('.hero');if(hd&&hd.dataset.sk!==sk){hd.dataset.sk=sk;hd.querySelectorAll('.hero-deco,.xmas,.snowcap,.hero-sparkle,.aqua').forEach(e=>e.remove());hd.insertAdjacentHTML('afterbegin',heroExtra(sk))}
-  $('#shopName').textContent=settings.shop||'ODin Goldfish';document.title=settings.shop||'ODin Goldfish';
+  $('#shopName').textContent=settings.shop||'Cửa hàng';document.title=settings.shop||'Cửa hàng';{const m=document.querySelector('meta[name="apple-mobile-web-app-title"]');if(m)m.content=settings.shop||'Cửa hàng'}
   const lg=$('#shopLogo');lg.hidden=!settings.logo;lg.innerHTML=settings.logo?`<img src="${settings.logo}" alt="">`:'';
+  setTouchIcon();
 }
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAccent)}catch(e){}
 new MutationObserver(applyAccent).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
@@ -1050,7 +1058,7 @@ async function billCanvas(o){
   const line=yy=>{x.fillStyle='#222';x.fillRect(PAD,yy,IW,2)};
   let y=PAD;
   if(logo){const r=44;x.save();x.beginPath();x.arc(W/2,y+r,r,0,7);x.clip();x.drawImage(logo,W/2-r,y,r*2,r*2);x.restore();y+=r*2+18}
-  y+=34;T(settings.shop||'ODin Goldfish',W/2,y,'800 38px '+F,'#111','center');
+  y+=34;T(settings.shop||'Cửa hàng',W/2,y,'800 38px '+F,'#111','center');
   head.forEach(h=>{y+=30;T(h,W/2,y,'400 22px '+F,'#555','center')});
   y+=52;T('HÓA ĐƠN BÁN HÀNG',W/2,y,'800 30px '+F,brand,'center');y+=24;
   info.forEach(([a,v])=>{y+=36;T(a,PAD,y,'400 23px '+F,'#777');T(v,W-PAD,y,'600 23px '+F,'#111','right')});
@@ -1082,7 +1090,7 @@ async function openInvoice(id){const o=orders.find(x=>x.id===id);if(!o)return;co
   b.onclick=()=>shareImg(false);$('#bSave').onclick=()=>shareImg(true);
   $('#bAmt').onclick=async()=>{await copyText(money(orderTotal(o)).replace(/\D/g,''));toast('Đã chép số tiền '+fmt(orderTotal(o)))};
   $('#bTxt').onclick=()=>shareText(receiptText(o),'Hóa đơn '+o.id)}
-function receiptText(o){const L=[`${settings.shop||'ODin Goldfish'}`,`Hóa đơn ${o.id} · ${new Date(o.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'})}`,`Khách: ${C(o.cid)?.name||o.name}`,'────────────'];
+function receiptText(o){const L=[`${settings.shop||'Cửa hàng'}`,`Hóa đơn ${o.id} · ${new Date(o.at).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'})}`,`Khách: ${C(o.cid)?.name||o.name}`,'────────────'];
   o.items.forEach(i=>L.push(`${P(i.id)?.name||i.name||'Sản phẩm'} x${i.qty}  ${fmt(iPrice(i)*i.qty)}`));
   if(o.discount)L.push(`${o.promo||'Giảm giá'}: -${fmt(o.discount)}`);L.push('────────────',`TỔNG: ${fmt(orderTotal(o))}`,o.status==='new'?'Trạng thái: Ghi nợ':`Thanh toán: ${PAY[o.pay]||''}`);
   if(settings.bin&&settings.acc&&o.status==='new')L.push(`CK: ${BANKS[settings.bin]||''} ${settings.acc}${settings.accName?' - '+settings.accName:''}`);
@@ -1403,12 +1411,12 @@ function bindReport(){
   if(st.rtab==='stock'&&$('#kq')){const k=$('#kq');k.oninput=()=>{st.kq=k.value;const q=norm(k.value.trim());let n=0;document.querySelectorAll('#kList .krow').forEach(r=>{const ok=!q||r.dataset.kn.includes(q);r.hidden=!ok;if(ok)n++});let e=$('#kList .kempty');if(!n&&!e){$('#kList').insertAdjacentHTML('beforeend','<div class="empty kempty">Không có sản phẩm</div>')}else if(n&&e)e.remove()}}
   if(st.rtab==='stock'&&$('#kScan'))$('#kScan').onclick=()=>openScanner(c=>{const p=products.find(x=>x.code===c&&!x.service);if(!p){closeSheet();toast('Chưa có sản phẩm mã '+c);return}stopScan();openStockMove(p.id,'in')},'Quét mã sản phẩm',false,null);
   if(st.view==='settings'){
-    $('#setSave').onclick=()=>{settings.shop=$('#set-shop').value.trim()||'ODin Goldfish';settings.bin=$('#set-bin').value;settings.acc=$('#set-acc').value.trim();settings.accName=$('#set-name').value.trim().toUpperCase();save();applyAccent();render();toast('Đã lưu cài đặt')};
+    $('#setSave').onclick=()=>{settings.shop=$('#set-shop').value.trim()||'Cửa hàng';settings.bin=$('#set-bin').value;settings.acc=$('#set-acc').value.trim();settings.accName=$('#set-name').value.trim().toUpperCase();save();applyAccent();render();toast('Đã lưu cài đặt')};
     document.querySelectorAll('.logo-in').forEach(i=>i.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)squareImg(f,256,d=>{settings.logo=d;if(!save()){delete settings.logo;toast('Bộ nhớ đầy, thử ảnh khác');return}applyAccent();render();toast('Đã cập nhật ảnh cửa hàng')})});
     if($('#logoRm'))$('#logoRm').onclick=()=>{delete settings.logo;save();applyAccent();render();toast('Đã xóa ảnh cửa hàng')};
     $('#fxOn').onchange=e=>{settings.fx=e.target.checked;save();applyAccent()};
     ['phone','addr'].forEach(k=>{const i=$('#set-'+k);if(i)i.onchange=e=>{const v=e.target.value.trim();if(v)settings[k]=v;else delete settings[k];save();toast('Đã lưu')}});
-    $('#set-shop').onchange=e=>{settings.shop=e.target.value.trim()||'ODin Goldfish';save();applyAccent();toast('Đã đổi tên cửa hàng')};
+    $('#set-shop').onchange=e=>{settings.shop=e.target.value.trim()||'Cửa hàng';save();applyAccent();toast('Đã đổi tên cửa hàng')};
     if($('#syncOn'))$('#syncOn').onclick=()=>confirmSheet('Đưa toàn bộ dữ liệu của máy này lên mạng để dùng chung?','Bật đồng bộ',async()=>{await syncEnable();render()});
     if($('#syncJoin'))$('#syncJoin').onclick=openJoin;
     if($('#syncOff'))$('#syncOff').onclick=()=>confirmSheet('Ngừng đồng bộ trên máy này? Dữ liệu hiện có vẫn giữ trong máy, nhưng sẽ không nhận đơn mới từ máy khác nữa.','Ngừng',()=>{syncStop();render()});
@@ -1601,7 +1609,7 @@ addEventListener('resize',()=>fitTitle());
 const VIEWS={shop:['Bán hàng',vShop],orders:['Đơn hàng',vOrders],customers:['Khách hàng',vCustomers],cashbook:['Thu chi',vCash],report:['Báo cáo',vReport],settings:['Cài đặt',()=>`<div class="view">${rSettings()}</div>`]};
 function render(){
   const [title,fn]=VIEWS[st.view];
-  {const vt=$('#viewTitle'),sn=$('#shopName'),home=st.view==='shop';vt.textContent=home?(settings.shop||'ODin Goldfish'):title;sn.hidden=home;vt.style.fontSize='';vt.classList.toggle('fit',home);if(home)requestAnimationFrame(fitTitle)}
+  {const vt=$('#viewTitle'),sn=$('#shopName'),home=st.view==='shop';vt.textContent=home?(settings.shop||'Cửa hàng'):title;sn.hidden=home;vt.style.fontSize='';vt.classList.toggle('fit',home);if(home)requestAnimationFrame(fitTitle)}
   $('#searchBox').hidden=!['shop','orders','customers'].includes(st.view);
   $('#q').placeholder={shop:'Tìm sản phẩm, dịch vụ',orders:'Tìm mã đơn, tên khách',customers:'Tìm tên, số điện thoại'}[st.view]||'';
   const t=totals();
