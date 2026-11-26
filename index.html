@@ -501,8 +501,9 @@ let cash=store.get('cash',null)||[];
 let moves=store.get('moves',null)||[];
 let debtPays=store.get('debtPays',null)||[];
 let pcats=store.get('pcats',null)||[];
-const SYS_CCATS=()=>structuredClone(SEED_CCATS.filter(c=>c.sys));
+const SYS_CCATS=()=>structuredClone(SEED_CCATS);
 let ccats=store.get('ccats',null)||SYS_CCATS();
+if(!store.get('ccatSeed2',false)){SEED_CCATS.forEach(c=>{if(!ccats.some(x=>x.id===c.id||(x.type===c.type&&norm(x.name)===norm(c.name))))ccats.push(structuredClone(c))});store.set('ccats',ccats);store.set('ccatSeed2',true)}
 const _hadSettings=!!store.get('settings',null)||['products','orders','customers','moves','cash'].some(k=>{const v=store.get(k,null);return Array.isArray(v)&&v.length>0});
 let settings=store.get('settings',null)||{shop:'Cửa hàng',accent:'blue',bin:'',acc:'',accName:''};
 let cart=store.get('cart',{}),discount=store.get('discount',0),promoId=store.get('promo',null);
