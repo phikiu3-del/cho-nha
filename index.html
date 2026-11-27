@@ -835,7 +835,7 @@ function applyAccent(){
   const hd=document.querySelector('.hero');if(hd&&hd.dataset.sk!==sk){hd.dataset.sk=sk;hd.querySelectorAll('.hero-deco,.xmas,.snowcap,.hero-sparkle,.aqua').forEach(e=>e.remove());hd.insertAdjacentHTML('afterbegin',heroExtra(sk))}
   $('#shopName').textContent=settings.shop||'Cửa hàng';document.title=settings.shop||'Cửa hàng';{const m=document.querySelector('meta[name="apple-mobile-web-app-title"]');if(m)m.content=settings.shop||'Cửa hàng'}
   const lg=$('#shopLogo');lg.hidden=!settings.logo;lg.innerHTML=settings.logo?`<img src="${esc(settings.logo)}" alt="">`:'';
-  setTouchIcon();
+  setTouchIcon();applyLang();
 }
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAccent)}catch(e){}
 new MutationObserver(applyAccent).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
@@ -884,6 +884,110 @@ function openSheet(title,body,foot='',right=''){
   $('#sheetBody').querySelectorAll('input:not([autocomplete]):not([type=file]):not([type=checkbox])').forEach(i=>i.setAttribute('autocomplete','off'));$('#sheetBody').scrollTop=0;$('#sheet').classList.add('on');$('#scrim').classList.add('on');drawQRs($('#sheetBody'));
 }
 function closeSheet(){stopScan();$('#sheet').classList.remove('on');$('#scrim').classList.remove('on')}
+/* ---------- ngôn ngữ (Hàn) ---------- */
+const KO={
+'Tất cả':'전체','Thu':'수입','Chi':'지출','Tự động':'자동','Sáng':'라이트','Tối':'다크','Mới nhất':'최신순','Cũ nhất':'오래된순','Tiền nhập nhiều nhất':'매입액 많은순','Số lượng nhiều nhất':'수량 많은순',
+'Việt Nam đồng (₫)':'베트남 동 (₫)','Won Hàn Quốc (₩)':'한국 원 (₩)','7 ngày':'7일','30 ngày':'30일','Theo năm':'연도별','Xóa số':'지우기','7 ngày gần đây':'최근 7일','Theo ngày':'일별','Theo tháng':'월별',
+'% so với hôm qua':'% 어제 대비','+ Thêm sản phẩm hoặc dịch vụ':'+ 상품 또는 서비스 추가','Xóa':'삭제','Xóa ảnh':'사진 삭제','Không có sản phẩm':'상품 없음','Không có phiếu nhập nào':'입고 내역 없음','Không nợ':'외상 없음',
+'Chưa có giá nhập':'매입가 없음','Không tạo được ảnh, dùng Gửi dạng chữ':'이미지를 만들 수 없습니다. 텍스트로 보내기를 사용하세요','Dịch vụ':'서비스','Chọn ngân hàng':'은행 선택','Không áp dụng':'적용 안 함',
+'Thêm ảnh sản phẩm':'상품 사진 추가','Thêm ảnh':'사진 추가','Tất cả danh mục':'전체 카테고리','Biểu tượng':'아이콘','Biểu tượng khi không có ảnh':'사진이 없을 때 아이콘','Biểu đồ chi tiêu':'지출 차트',
+'Bán 1':'1개 판매','Bán chạy nhất':'베스트셀러','Bán hàng':'판매','Bán đơn tiếp':'다음 주문','Báo cáo':'보고서','Bản sao tự động':'자동 백업','Bản sao tự động trong máy':'기기 내 자동 백업',
+'Bật đồng bộ':'동기화 켜기','Bật đồng bộ cho cửa hàng này':'이 매장 동기화 켜기','Bỏ chọn':'선택 해제','Bỏ chọn hết':'모두 해제','Bỏ ảnh':'사진 제거','Bộ nhớ đầy, thử ảnh nhỏ hơn hoặc bỏ bớt ảnh':'저장 공간이 부족합니다. 더 작은 사진을 사용하세요',
+'Bớt':'빼기','Bớt một':'하나 빼기','Chi phí khác':'기타 비용','Chi theo hạng mục':'항목별 지출','Chi tiêu theo hạng mục':'항목별 지출','Chi tiết từng tháng':'월별 상세','Chia sẻ':'공유','Chuyển khoản':'계좌이체',
+'Chào':'안녕하세요','Chép mã':'코드 복사','Chép rồi mở Zalo':'복사 후 Zalo 열기','Chép số tiền':'금액 복사','Chưa bật':'꺼짐','Chưa có bản sao nào':'백업 없음','Chưa có danh mục nào':'카테고리 없음','Chưa có dữ liệu':'데이터 없음',
+'Chưa có hàng trong kho':'재고 없음','Chưa có khoản chi':'지출 없음','Chưa có khoản nào':'내역 없음','Chưa có khách hàng. Bấm + để thêm.':'고객이 없습니다. +를 눌러 추가하세요.','Chưa có sản phẩm nào':'상품이 없습니다',
+'Chưa có số điện thoại':'전화번호 없음','Chưa có tài khoản nhận tiền':'입금 계좌 없음','Chưa có đơn nào':'주문 없음','Chưa kết nối máy chủ đồng bộ':'동기화 서버에 연결되지 않음','Chưa mua đơn nào':'구매 내역 없음',
+'Chưa mở được camera. Vào Cài đặt iPhone › Safari › Camera, chọn Cho phép, rồi thử lại.':'카메라를 열 수 없습니다. iPhone 설정 › Safari › 카메라에서 허용을 선택한 후 다시 시도하세요.','Chưa phân loại':'미분류','Chưa sao lưu lần nào':'백업한 적 없음',
+'Chưa thanh toán':'미결제','Chưa tạo được ảnh':'이미지를 만들 수 없음','Chưa tải được bộ quét mã, kiểm tra mạng rồi thử lại.':'스캐너를 불러올 수 없습니다. 네트워크를 확인하세요.','Chạm sản phẩm để thêm vào đơn':'상품을 눌러 주문에 추가',
+'Chế độ':'모드','Chết, hỏng':'폐사·파손','Chỉ còn':'남은 수량','Chỉ xóa sản phẩm':'상품만 삭제','Chọn hoặc tạo một hạng mục':'항목을 선택하거나 만드세요','Chọn ngày':'날짜 선택','Chọn sản phẩm':'상품 선택','Chọn tất cả':'모두 선택',
+'Chọn từ máy':'기기에서 선택','Chụp ảnh':'사진 촬영','Cung hoàng đạo':'별자리','Cuối ngày':'마감','Cài đặt':'설정','Cài đặt cửa hàng':'매장 설정','Cá vàng':'금붕어','Cách làm':'방법','Còn':'재고','Chi tiết':'상세','Còn lại':'잔여','Còn thiếu':'부족',
+'Có gió':'바람','Cũ nhất':'오래된순','Cơ bản':'기본','Cảm ơn quý khách!':'감사합니다!','Cảm ơn quý khách, hẹn gặp lại!':'감사합니다. 또 오세요!','Cần có mạng để bật đồng bộ':'동기화를 켜려면 인터넷이 필요합니다','Cửa hàng':'매장',
+'Danh mục':'카테고리','Danh mục mới':'새 카테고리','Danh mục sản phẩm':'상품 카테고리','Doanh thu':'매출','Doanh thu 12 tháng':'12개월 매출','Doanh thu năm':'연 매출','Doanh thu, lời lỗ, đơn hàng của món này cũng mất':'이 상품의 매출, 손익, 주문도 함께 삭제됩니다',
+'Dùng chung cửa hàng':'매장 공유','Dùng chung cửa hàng của máy khác':'다른 기기의 매장 공유','Dùng chung nhiều máy':'여러 기기에서 공유','Dùng nội bộ':'내부 사용','Dịch vụ, không tính tồn kho':'서비스 (재고 없음)',
+'Dữ liệu trên máy này sẽ được thay bằng dữ liệu cửa hàng chung':'이 기기의 데이터가 공유 매장 데이터로 바뀝니다','File này không phải bản sao lưu của app':'앱 백업 파일이 아닙니다','Ghi chú':'메모','Ghi nhận đã thu':'수금 완료로 기록',
+'Ghi nợ':'외상','Ghi nợ (chưa trả)':'외상 (미지급)','Ghi nợ cần tên khách hàng':'외상은 고객 이름이 필요합니다','Ghi nợ, khách trả sau':'외상, 나중에 결제','Giao diện':'화면','Giá bán':'판매가','Giá gốc (gạch ngang)':'정가 (취소선)',
+'Giá nhập':'매입가','Giá trị':'금액','Giá trị tồn kho':'재고 가치','Giá vốn':'원가','Giá vốn hàng bán':'매출원가','Giáng sinh':'크리스마스','Giúp iPhone không tự xóa dữ liệu':'iPhone이 데이터를 지우지 않도록','Giảm giá':'할인','Giảm số tiền':'금액 할인','Giảm theo %':'% 할인',
+'Giữ lâu vào ảnh để lưu hoặc gửi':'이미지를 길게 눌러 저장하거나 보내기','Giữ lại các đơn đã bán trong báo cáo':'보고서에 판매 주문 유지','Gọi':'전화','Gửi SMS':'문자 보내기','Gửi dạng chữ':'텍스트로 보내기','Gửi hóa đơn':'영수증 보내기','Gửi qua app khác':'다른 앱으로 보내기',
+'Hiệu ứng động':'애니메이션 효과','Hoàn tất đơn':'주문 완료','HÓA ĐƠN BÁN HÀNG':'판매 영수증','Hình thức thanh toán':'결제 방법','Hóa đơn':'영수증','Hôm nay':'오늘','Hôm qua':'어제','Hạng mục chi':'지출 항목','Hạng mục thu':'수입 항목','Hạng mục thu chi':'수입·지출 항목',
+'Hết hàng':'품절','Hủy':'취소','Kho hàng':'재고','Khuyến mãi':'프로모션','Khuyến mãi mới':'새 프로모션','Khuyến mãi:':'프로모션:','Khác':'기타','Khách cần trả':'결제 금액','Khách hàng':'고객','Khách hàng mới':'새 고객','Khách lẻ':'일반 고객',
+'Khách mở app ngân hàng và quét mã này':'고객이 은행 앱으로 이 코드를 스캔합니다','Khách đang nợ':'외상 고객','Khách:':'고객:','Khôi phục':'복원','Khôi phục từ file':'파일에서 복원','Không bắt buộc':'선택 사항','Không có':'없음',
+'Không kết nối được, thử lại':'연결할 수 없습니다. 다시 시도하세요','Không kết nối được, thử lại sau':'연결할 수 없습니다. 나중에 다시 시도하세요','Không tìm thấy cửa hàng với mã này':'이 코드의 매장을 찾을 수 없습니다','Không tải được mã QR':'QR 코드를 불러올 수 없음','Không đọc được ảnh này':'이 사진을 읽을 수 없음',
+'Kiểm kho':'재고 조사','Kết nối':'연결','Lý do':'사유','Lưu':'저장','Lưu 1 file ra Tệp hoặc iCloud để không bao giờ mất dữ liệu.':'파일 앱이나 iCloud에 저장해 데이터를 잃지 않도록 하세요.','Lưu cài đặt':'설정 저장','Lưu khách hàng':'고객 저장','Lưu ảnh':'이미지 저장',
+'Lương':'급여','Lần cuối':'마지막','Lịch sử':'내역','Lịch sử nhập hàng':'입고 내역','Lịch sử thu chi':'수입·지출 내역','Lịch thu chi':'수입·지출 달력','Lỗi kết nối, đang thử lại':'연결 오류, 다시 시도 중','Lời bán hàng':'판매 이익','Lời thực':'순이익','Lời':'이익',
+'Màu chủ đạo':'테마 색상','Màu sắc':'색상','Máy chủ chưa mở quyền ghi dữ liệu':'서버에 쓰기 권한이 없습니다','Máy khác dùng chung được':'다른 기기와 공유 가능','Máy này chưa mở được camera trong trình duyệt. Hãy mở app từ màn hình chính trên iPhone.':'브라우저에서 카메라를 열 수 없습니다. iPhone 홈 화면에서 앱을 여세요.',
+'Mã QR nhận tiền (khách tự nhập số tiền)':'입금 QR 코드 (고객이 금액 입력)','Mã cửa hàng':'매장 코드','Mã vạch':'바코드','Mã vạch này đã dùng cho sản phẩm khác':'이 바코드는 다른 상품에 사용 중입니다','Mã:':'코드:','Món đã bán':'판매 수량','Mô tả':'설명','Mùa hè':'여름',
+'Mất mạng, có mạng sẽ tự gửi':'오프라인, 연결되면 자동 전송','Mặc định':'기본','Mặt bằng':'임대료','Mệnh':'오행','Mới nhất':'최신순','Ngày':'일','Ngày lễ':'기념일','Ngày này chưa có khoản nào. Bấm + để thêm.':'이 날은 내역이 없습니다. +를 눌러 추가하세요.','Ngân hàng':'은행',
+'Ngừng':'중지','Ngừng đồng bộ trên máy này':'이 기기에서 동기화 중지','Ngừng đồng bộ trên máy này? Dữ liệu hiện có vẫn giữ trong máy, nhưng sẽ không nhận đơn mới từ máy khác nữa.':'이 기기에서 동기화를 중지할까요? 데이터는 기기에 남지만 다른 기기의 새 주문은 받지 않습니다.',
+'Nhiều mây':'흐림','Nhập':'입고','Nhập giá bán':'판매가 입력','Nhập hoặc quét mã cửa hàng':'매장 코드 입력 또는 스캔','Nhập hàng':'입고','Nhập kho':'입고','Nhập số lượng':'수량 입력','Nhập số tiền bằng bàn phím số':'숫자 키패드로 금액 입력','Nhập số tiền khách trả':'받은 금액 입력',
+'Nhập tên sản phẩm':'상품명 입력','Nhập xuất gần đây':'최근 입출고','Nhắc nợ':'외상 알림','Nhắn tin':'메시지','Năm':'연','Năm mới':'새해','Năm sau':'다음 해','Năm trước':'작년','Nội dung tin nhắn':'메시지 내용','Phiếu nhập gần đây':'최근 입고','Phiếu nhập kho':'입고 전표',
+'Phiếu xuất gần đây':'최근 출고','Phiếu xuất kho':'출고 전표','Phong cách':'스타일','Phần trăm giảm':'할인율','Quay lại':'되돌리기','Quay lại dữ liệu của ngày trước':'이전 날짜 데이터로 되돌리기','Quét mã':'스캔','Quét mã QR ở máy kia':'다른 기기의 QR 코드 스캔',
+'Quét mã bằng app ngân hàng để chuyển khoản':'은행 앱으로 스캔하여 이체','Quét mã cửa hàng':'매장 코드 스캔','Quét mã sản phẩm':'상품 코드 스캔','Quét mã vạch':'바코드 스캔','Quét mã vạch sản phẩm':'상품 바코드 스캔','Quét mã để bán':'스캔하여 판매','Quốc khánh':'국경일',
+'Sao lưu':'백업','Sao lưu dữ liệu':'데이터 백업','Sao lưu ra file':'파일로 백업','Sản phẩm':'상품','Sản phẩm mới':'새 상품','Sản phẩm đã hết hàng. Vào Kho hàng để nhập thêm.':'품절된 상품입니다. 재고에서 입고하세요.','Sắp hết':'품절 임박','Sắp xếp':'정렬',
+'Số hóa đơn':'영수증 번호','Số lượng':'수량','Số lượng bớt':'뺄 수량','Số lượng nhập':'입고 수량','Số lượng thêm':'추가 수량','Số tiền khách trả':'받은 금액','Số tài khoản':'계좌번호','Số điện thoại':'전화번호','Số điện thoại tiệm':'매장 전화번호','Số đơn':'주문 수',
+'Sửa':'수정','Sửa chữa':'수리','Sửa hạng mục':'항목 수정','Sửa khoản':'내역 수정','Sửa khuyến mãi':'프로모션 수정','Sửa khách hàng':'고객 수정','Sửa sản phẩm':'상품 수정','Sửa tồn kho':'재고 수정','Thanh toán':'결제','Thanh toán ›':'결제 ›','Thanh toán:':'결제:',
+'Theo dịp':'시즌별','Thiếu nhi':'어린이날','Thu khác':'기타 수입','Thu nợ':'외상 회수','Thành tiền':'금액','Tháng':'월','Tháng này chưa có khoản chi.':'이번 달 지출이 없습니다.','Tháng sau':'다음 달','Tháng trước':'지난달','Thêm':'추가','Thêm khoản':'내역 추가',
+'Thêm khoản thu chi':'수입·지출 추가','Thêm khuyến mãi':'프로모션 추가','Thêm khách hàng':'고객 추가','Thêm mới':'새로 추가','Thêm sản phẩm':'상품 추가','Thêm sản phẩm trước, sau đó nhập hàng và theo dõi tồn kho ở đây.':'먼저 상품을 추가한 후 여기서 입고하고 재고를 관리하세요.',
+'Thêm sản phẩm đầu tiên, kèm ảnh chụp hoặc ảnh có sẵn trong điện thoại. Sau đó chạm vào sản phẩm để bán.':'사진과 함께 첫 상품을 추가하세요. 그 다음 상품을 눌러 판매합니다.','Thêm vào MH chính':'홈 화면에 추가','Thêm vào màn hình chính':'홈 화면에 추가',
+'Thông tin trên hóa đơn':'영수증 정보','Thối lại khách':'거스름돈','Thời gian':'시간','Thời tiết':'날씨','Tiền chi':'지출','Tiền khách đưa':'받은 금액','Tiền lời':'이익','Tiền mặt':'현금','Tiền nhập':'매입액','Tiền nhập hàng':'매입액','Tiền nhập:':'매입액:','Tiền thu':'수입',
+'Tiền thối lại:':'거스름돈:','Tiền tệ':'통화','Ngôn ngữ':'언어','Trước':'이전','Trạng thái: Ghi nợ':'상태: 외상','Trả nhà cung cấp':'공급업체 지급','Trời mưa':'비','Trời nắng':'맑음','Tuyết rơi':'눈','Tuần':'주','Tài khoản nhận chuyển khoản':'이체 받을 계좌','Tên':'이름',
+'Tên chương trình':'프로모션 이름','Tên chủ tài khoản':'예금주','Tên cửa hàng':'매장 이름','Tên khách':'고객 이름','Tên này đã có':'이미 있는 이름입니다','Tên sản phẩm':'상품명','Tìm kiếm':'검색','Tìm mã đơn, tên khách':'주문번호, 고객 이름 검색','Tìm sản phẩm':'상품 검색',
+'Tìm sản phẩm, dịch vụ':'상품, 서비스 검색','Tìm tên, số điện thoại':'이름, 전화번호 검색','Tùy chọn':'직접 선택','Tùy chọn thêm':'추가 옵션','Tạm tính':'소계','Tạo danh mục trước (không bắt buộc)':'먼저 카테고리 만들기 (선택)','Tặng khách':'증정','Tết':'설날','Tồn':'재고',
+'Tồn kho':'재고','Tồn kho hiện tại':'현재 재고','Tồn kho sẽ bị âm':'재고가 마이너스가 됩니다','Tồn kho thực tế':'실제 재고','Tồn sau':'변경 후 재고','TỔNG CỘNG':'합계','TỔNG:':'합계:','Tổng chi':'총 지출','Tổng cộng':'합계','Tổng quan':'개요','Tổng số lượng:':'총 수량:',
+'Tổng tiền khách nợ':'총 외상 금액','Tổng tiền nhập':'총 매입액','Tổng tồn':'총 재고','Tổng tồn kho':'총 재고','Từ ngày':'시작일','Từng tháng':'월별','Ví điện tử':'전자지갑','Vận chuyển':'배송','Vốn góp':'출자금','Vừa đủ':'딱 맞음','Xuất kho':'출고','Xác nhận':'확인',
+'Xóa cả lịch sử bán':'판매 내역도 삭제','Xóa hết':'모두 삭제','Xóa phiếu':'전표 삭제','Xóa sản phẩm':'상품 삭제','Xóa toàn bộ dữ liệu, bắt đầu lại':'모든 데이터 삭제 후 새로 시작','Xóa đơn':'주문 삭제','Đang giao':'배송 중','Đang gửi…':'전송 중…','Đang kết nối…':'연결 중…',
+'Đang nợ':'외상 중','Đang tạo hóa đơn…':'영수증 만드는 중…','Đang tải dữ liệu…':'데이터 불러오는 중…','Đang xử lý ảnh…':'사진 처리 중…','Đang đưa dữ liệu lên…':'데이터 업로드 중…','Điểm':'포인트','Điện nước':'전기·수도','Điện thoại':'전화','Đã bán':'판매','Đã bật đồng bộ':'동기화 켜짐',
+'Đã chép mã cửa hàng':'매장 코드 복사됨','Đã chép tin nhắn, dán vào Zalo':'메시지 복사됨','Đã chép, dán vào Zalo hoặc tin nhắn':'복사됨, 메신저에 붙여넣으세요','Đã chọn':'선택됨','Đã dùng chung cửa hàng':'매장 공유됨','Đã hủy':'취소됨','Đã khôi phục dữ liệu':'데이터 복원됨',
+'Đã khôi phục dữ liệu đã lưu':'저장된 데이터 복원됨','Đã lưu':'저장됨','Đã lưu cài đặt':'설정 저장됨','Đã lưu khuyến mãi':'프로모션 저장됨','Đã lưu khách hàng':'고객 저장됨','Đã lưu phiếu':'전표 저장됨','Đã lưu thay đổi':'변경 사항 저장됨','Đã lưu đơn':'주문 저장됨',
+'Đã lưu ảnh hóa đơn':'영수증 이미지 저장됨','Đã lấy mã':'코드 가져옴','Đã mua':'구매','Đã nhập':'입고됨','Đã quay lại bản sao':'백업으로 되돌림','Đã sửa tồn':'재고 수정됨','Đã thu':'수금','Đã thu tiền':'수금 완료','Đã thêm':'추가됨','Đã thêm vào đơn':'주문에 추가됨',
+'Đã tạo file sao lưu':'백업 파일 생성됨','Đã xuất':'출고됨','Đã xóa':'삭제됨','Đã xóa khuyến mãi':'프로모션 삭제됨','Đã xóa đơn':'주문 삭제됨','Đã xóa ảnh cửa hàng':'매장 사진 삭제됨','Đã xóa, app trống như mới':'삭제됨, 앱이 초기화되었습니다','Đã đồng bộ':'동기화됨',
+'Đã đổi tên cửa hàng':'매장 이름 변경됨','Đóng':'닫기','Đơn':'주문','Đơn chưa đủ':'주문 금액 부족','Đơn giá':'단가','Đơn hàng':'주문','Đơn mới':'새 주문','Đơn vị':'단위','Đơn vị:':'단위:','Đơn đang trống. Chạm “+ Thêm” trên sản phẩm để bắt đầu.':'주문이 비어 있습니다. 상품의 “+ 추가”를 누르세요.',
+'Đơn đang tạo':'작성 중인 주문','Đơn đã hủy':'취소된 주문','Đưa mã vạch vào giữa khung, giữ máy yên.':'바코드를 프레임 가운데에 맞추고 기기를 고정하세요.','Đưa toàn bộ dữ liệu của máy này lên mạng để dùng chung?':'이 기기의 모든 데이터를 업로드하여 공유할까요?','Đến ngày':'종료일',
+'Để dùng như app thật và iPhone không tự xóa dữ liệu.':'실제 앱처럼 사용하고 iPhone이 데이터를 지우지 않도록.','Để sau':'나중에','Địa chỉ':'주소','Địa chỉ tiệm':'매장 주소','Đồng bộ đang bật':'동기화 켜짐','Đổi trạng thái':'상태 변경','Ảnh cửa hàng':'매장 사진','Ảnh đại diện cửa hàng':'매장 대표 사진','Ẩn':'숨기기',
+'＋ Danh mục':'＋ 카테고리','＋ Sản phẩm mới':'＋ 새 상품','＋ Thêm':'＋ 추가','＋ Thêm sản phẩm':'＋ 상품 추가','＋ Thêm sản phẩm đầu tiên':'＋ 첫 상품 추가','📷 Chụp ảnh':'📷 사진 촬영','🔔 Nhắc nợ khách':'🔔 고객에게 외상 알림','🖼️ Chọn ảnh trong máy':'🖼️ 기기에서 사진 선택',
+'Gia vị':'양념','Gạo & Đồ khô':'쌀·건식품','Rau củ & Trái cây':'채소·과일','Thịt cá & Trứng':'육류·생선·계란','Sữa & Bánh kẹo':'우유·과자','Đồ uống':'음료','Hóa phẩm':'생활용품',
+'Bạch Dương':'양자리','Kim Ngưu':'황소자리','Song Tử':'쌍둥이자리','Cự Giải':'게자리','Sư Tử':'사자자리','Xử Nữ':'처녀자리','Thiên Bình':'천칭자리','Bọ Cạp':'전갈자리','Nhân Mã':'사수자리','Ma Kết':'염소자리','Bảo Bình':'물병자리','Song Ngư':'물고기자리',
+'Kim':'금(金)','Mộc':'목(木)','Thủy':'수(水)','Hỏa':'화(火)','Thổ':'토(土)','Trung thu':'추석','Halloween':'핼러윈','8/3 · 20/10':'여성의 날',
+'Xanh lá':'초록','Xanh ngọc':'청록','Xanh trời':'하늘','Xanh dương':'파랑','Xanh đêm':'남색','Tím':'보라','Hồng':'분홍','Đỏ':'빨강','Cam':'주황','Vàng':'노랑','Vàng đồng':'황동','Nâu':'갈색','Than chì':'흑연',
+'T2':'월','T3':'화','T4':'수','T5':'목','T6':'금','T7':'토','CN':'일','Nay':'오늘','Mã cửa hàng của bạn':'내 매장 코드','Đã bán ·':'판매 ·','Sản phẩm trong danh mục':'카테고리 상품',
+'Tháng 1':'1월','Lịch sử mua':'구매 내역','Điểm tích lũy':'적립 포인트','Thêm hạng mục':'항목 추가','＋ Thêm hạng mục':'＋ 항목 추가','+ Thêm hạng mục':'+ 항목 추가','+ Danh mục':'+ 카테고리','+ Sản phẩm mới':'+ 새 상품','Tiền':'금액','Lỗ':'손실','lời':'이익','lỗ':'손실','đang nợ':'외상 중','Chọn file …sao-luu…json':'백업 파일(…sao-luu…json) 선택','Thêm ngân hàng ở Báo cáo › Cửa hàng để hiện mã QR đúng số tiền':'설정에서 은행을 추가하면 금액이 포함된 QR 코드가 표시됩니다','Nhập':'입고','Tiếng Việt':'Tiếng Việt'
+};
+const KO_UNIT={'khoản':'건','đơn':'건','sản phẩm':'개 상품','món':'개','lượt':'회','phiếu nhập':'건 입고','phiếu xuất':'건 출고','khách':'명','lần sửa tồn':'회 재고 수정','ngày chưa sao lưu':'일째 백업 안 함','con':'마리','cái':'개','danh mục':'개 카테고리','hạng mục':'개 항목','điểm':'포인트','phần':'인분'};
+const KO_PRE=['Doanh thu','Giá vốn','Chi phí','Lời thực','Lời','Còn','Tồn','Đã bán','Đã mua','Giá nhập','Giá bán','Tiền nhập','Tổng','Năm trước','Đang nợ','Khách cần trả','Đơn vị','Điểm','Lần cuối','Chỉ còn','Số lượng','Thanh toán','Mã','Tạm tính','Giảm giá','Tiền mặt','Chuyển khoản','Tháng này','Hôm nay','Còn thiếu','Thối lại khách','Tồn sau','Đã thanh toán','Tự động','Ngày','Tháng','Năm','Đơn','Xóa','Thêm','Sửa','Nhập kho','Xuất kho','Chi tiết','Hóa đơn','Lịch sử mua','lời','Nhập'].sort((a,b)=>b.length-a.length);
+const KO_WD={'Hai':'월','Ba':'화','Tư':'수','Năm':'목','Sáu':'금','Bảy':'토'};
+function koSeg(s){const m0=/^(\s*)([\s\S]*?)(\s*)$/.exec(s),a=m0[1],t=m0[2],z=m0[3];if(!t)return s;
+  if(KO[t]!=null)return a+KO[t]+z;
+  let m;
+  if((m=/^Tháng (\d{1,2})\/(\d{4})$/.exec(t)))return a+`${m[2]}년 ${m[1]}월`+z;
+  if((m=/^Tháng (\d{1,2})$/.exec(t)))return a+`${m[1]}월`+z;
+  if((m=/^Năm (\d{4})$/.exec(t)))return a+`${m[1]}년`+z;
+  if((m=/^Ngày (\d{1,2})$/.exec(t)))return a+`${m[1]}일`+z;
+  if((m=/^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ Nhật)(,\s*)?(.*)$/i.exec(t))){const w=m[2]?KO_WD[m[2][0].toUpperCase()+m[2].slice(1)]:'일';return a+(m[4]?m[4]+' ':'')+`(${w})`+z}
+  if((m=/^Th (\d)(,\s*)?(.*)$/.exec(t))){const w=['','','월','화','수','목','금','토'][+m[1]]||'';return a+(m[3]?m[3]+' ':'')+`(${w})`+z}
+  if((m=/^(Thứ|T)(\d)(,\s*)(.*)$/.exec(t))){const w=['','','월','화','수','목','금','토'][+m[2]]||'';return a+m[4]+` (${w})`+z}
+  if((m=/^CN(,\s*)(.*)$/.exec(t)))return a+m[2]+' (일)'+z;
+  if((m=/^([+\-−]?[\d.,]+[₫₩]?|[+\-−]?₩[\d,]+)\s+(.+)$/.exec(t))&&KO_UNIT[m[2]]!=null)return a+m[1]+KO_UNIT[m[2]]+z;
+  if((m=/^(.+?)\s*:\s*(.*)$/.exec(t))&&KO[m[1]]!=null)return a+KO[m[1]]+': '+koSeg(m[2])+z;
+  if((m=/^(.+?)\s+\(?(\d+)\)?$/.exec(t))&&KO[m[1]]!=null)return a+KO[m[1]]+(t.includes('(')?' ('+m[2]+')':' '+m[2])+z;
+  if((m=/^(\p{Extended_Pictographic}\uFE0F?\s+)(.+)$/u.exec(t))&&KO[m[2]]!=null)return a+m[1]+KO[m[2]]+z;
+  for(const L of KO_PRE)if(t.startsWith(L+' ')&&KO[L]!=null){const r=t.slice(L.length+1);if(r.split(/\s+/).length<=5)return a+KO[L]+' '+koSeg(r)+z}
+  return s}
+function ko(t){if(t==null)return t;const s=String(t);if(KO[s.trim()]==null&&!/[À-ỹĐđ]/.test(s))return s;
+  if(s.includes('\n'))return s.split('\n').map(ko).join('\n');
+  const x=koSeg(s);if(x!==s)return x;
+  if(s.includes('·'))return s.split(/(\s*·\s*)/).map(x=>/·/.test(x)?x:koSeg(x)).join('');
+  return s}
+const isKO=()=>{try{return settings.lang==='ko'}catch(e){return false}};
+const tr=t=>isKO()?ko(t):t;
+let I18N=null;const TR_ATTR=['placeholder','aria-label','title'];
+function trNode(n){const v=n.nodeValue,k=ko(v);if(k!==v)n.nodeValue=k}
+function trTree(root){if(root.nodeType===3){trNode(root);return}if(root.nodeType!==1)return;if(/^(SCRIPT|STYLE|TEXTAREA)$/.test(root.tagName))return;
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentNode&&/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName)?2:1});let n;while((n=w.nextNode()))trNode(n);
+  const els=[root,...root.querySelectorAll('[placeholder],[aria-label],[title]')];els.forEach(e=>TR_ATTR.forEach(a=>{const v=e.getAttribute&&e.getAttribute(a);if(v){const k=ko(v);if(k!==v)e.setAttribute(a,k)}}))}
+function applyLang(){const on=isKO();document.documentElement.lang=on?'ko':'vi';
+  if(on&&!I18N){I18N=new MutationObserver(ms=>{for(const m of ms){if(m.type==='characterData')trNode(m.target);else if(m.type==='attributes'){const v=m.target.getAttribute(m.attributeName);if(v){const k=ko(v);if(k!==v)m.target.setAttribute(m.attributeName,k)}}else m.addedNodes.forEach(trTree)}});
+    I18N.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:TR_ATTR});trTree(document.body)}
+  else if(!on&&I18N){I18N.disconnect();I18N=null}}
+
 let tt;function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2000)}
 function setErr(id,msg){const f=$('#'+id).closest('.field');f.classList.toggle('err',!!msg);const m=f.querySelector('.msg');if(m)m.textContent=msg||'';return !msg}
 const keepScroll=fn=>{const y=scrollY;fn();scrollTo(0,y)};
@@ -1092,7 +1196,7 @@ function remindDebt(c,debt){
   $('#rmShare').onclick=()=>shareText(txt(),'Nhắc nợ');
 }
 async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(_){}a.remove();return true}}
-async function shareText(t,title){if(navigator.share){try{await navigator.share({text:t,title});return}catch(e){if(e&&e.name==='AbortError')return}}await copyText(t);toast('Đã chép, dán vào Zalo hoặc tin nhắn')}
+async function shareText(t,title){t=tr(t);if(navigator.share){try{await navigator.share({text:t,title});return}catch(e){if(e&&e.name==='AbortError')return}}await copyText(t);toast('Đã chép, dán vào Zalo hoặc tin nhắn')}
 const IC_SHARE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
  IC_COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>',
  IC_BILL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
@@ -1122,7 +1226,7 @@ async function billCanvas(o){
   let H=PAD+(logo?110:0)+60+head.length*30+60+info.length*36+40+46+rows.reduce((a,r)=>a+r.n.length*32+44,0)+40+(o.discount?80:40)+70+44+(qr?500:0)+190+80;
   const k=2,c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d');x.scale(k,k);
   x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle=brand;x.fillRect(0,0,W,10);
-  const T=(t,px,py,font,col='#111',al='left')=>{x.font=font;x.fillStyle=col;x.textAlign=al;x.fillText(t,px,py)};
+  const T=(t,px,py,font,col='#111',al='left')=>{x.font=font;x.fillStyle=col;x.textAlign=al;x.fillText(tr(t),px,py)};
   const dash=yy=>{x.save();x.strokeStyle='#cfcfcf';x.lineWidth=2;x.setLineDash([8,7]);x.beginPath();x.moveTo(PAD,yy);x.lineTo(W-PAD,yy);x.stroke();x.restore()};
   const line=yy=>{x.fillStyle='#222';x.fillRect(PAD,yy,IW,2)};
   let y=PAD;
@@ -1460,6 +1564,7 @@ function rSettings(){
    :`<div class="group"><button class="cell" id="syncOn"><span class="ic" style="background:var(--brand-soft)">☁️</span><span class="grow"><span class="t" style="display:block">Bật đồng bộ cho cửa hàng này</span><span class="s" style="display:block">Máy khác dùng chung được</span></span>${CHEV}</button>
    <button class="cell" id="syncJoin"><span class="ic" style="background:var(--brand-soft)">📲</span><span class="grow"><span class="t" style="display:block">Dùng chung cửa hàng của máy khác</span><span class="s" style="display:block">Nhập hoặc quét mã cửa hàng</span></span>${CHEV}</button></div>`}`}
   <div class="group-h">Giao diện</div><div class="group"><div class="cell" style="flex-direction:column;align-items:stretch;gap:10px"><span class="t">Chế độ</span><div class="seg">${[['auto','Tự động'],['light','Sáng'],['dark','Tối']].map(([k,v])=>`<button data-thm="${k}" aria-pressed="${(settings.theme||'auto')===k}">${v}</button>`).join('')}</div></div></div>
+  <div class="group-h">Ngôn ngữ</div><div class="group"><div class="cell" style="flex-direction:column;align-items:stretch"><div class="seg">${[['vi','Tiếng Việt'],['ko','한국어']].map(([k,v])=>`<button data-lang="${k}" aria-pressed="${(settings.lang||'vi')===k}">${v}</button>`).join('')}</div></div></div>
   <div class="group-h">Tiền tệ</div><div class="group"><div class="cell" style="flex-direction:column;align-items:stretch"><div class="seg">${[['vnd','Việt Nam đồng (₫)'],['krw','Won Hàn Quốc (₩)']].map(([k,v])=>`<button data-cur="${k}" aria-pressed="${(settings.cur||'vnd')===k}">${v}</button>`).join('')}</div></div></div>
   <div class="group-h">Phong cách</div><div class="chips stg">${SGROUPS.map(([g,n])=>`<button class="chip sm" data-stg="${g}" aria-pressed="${g===(st.stg||grpOf(settings.style||'none'))}">${n}</button>`).join('')}</div><div class="group"><div class="styles">${SGROUPS.find(g=>g[0]===(st.stg||grpOf(settings.style||'none')))[2].map(k=>[k,STYLES[k]]).map(([k,S])=>{const bgc=S.hero||(k==='auto'?`linear-gradient(135deg,#c8102e,#e8a317 50%,#0f5132)`:`linear-gradient(135deg,color-mix(in srgb,var(--brand) 88%,#000),color-mix(in srgb,var(--brand) 52%,#000))`);return `<button data-style="${k}" aria-pressed="${(settings.style||'none')===k}" style="background:${bgc}"><b>${S.ic}</b>${S.n}${k==='auto'&&occasion()!=='none'?`<span style="font-size:11px;opacity:.85;font-weight:500">${STYLES[occasion()].n}</span>`:''}</button>`}).join('')}</div><label class="cell"><span class="grow t">Hiệu ứng động</span><input type="checkbox" class="switch" id="fxOn" ${settings.fx!==false?'checked':''}></label></div>
   <div class="group-h">Màu chủ đạo</div><div class="group"><div class="swatches">${Object.entries(ACCENTS).map(([k,a])=>`<button data-accent="${k}" aria-pressed="${curStyle()==='none'&&k===settings.accent}" aria-label="${a[0]}" style="background:${a[1]}"></button>`).join('')}</div></div>
@@ -1699,7 +1804,7 @@ function route(){let h=location.hash.slice(1);if(h==='cashbook'){st.rtab='overvi
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-cur],[data-stg],[data-year],[data-thm],[data-delorder],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-pp],[data-pnav],[data-hist],[data-inhist],[data-cmon],[data-pmonth],[data-catpick],[data-mv],[data-mvall],[data-stk],[data-op],[data-onav],[data-style],[data-newprod],[data-restock],[data-kf],[data-kmv],[data-go]');
+  const t=e.target.closest('[data-lang],[data-cur],[data-stg],[data-year],[data-thm],[data-delorder],[data-scan],[data-share],[data-promoedit],[data-smode],[data-oreason],[data-mgr],[data-catedit],[data-catnew],[data-cat],[data-add],[data-inc],[data-dec],[data-open],[data-close],[data-edit],[data-bill],[data-of],[data-order],[data-setst],[data-cust],[data-newcust],[data-editcust],[data-mon],[data-day],[data-cashedit],[data-rt],[data-range],[data-accent],[data-pp],[data-pnav],[data-hist],[data-inhist],[data-cmon],[data-pmonth],[data-catpick],[data-mv],[data-mvall],[data-stk],[data-op],[data-onav],[data-style],[data-newprod],[data-restock],[data-kf],[data-kmv],[data-go]');
   if(!t)return;const d=t.dataset;
   if(d.mgr)openCatList(d.mgr);
   else if(d.catedit)openCatEditor(d.kind,d.catedit);
@@ -1743,6 +1848,7 @@ document.addEventListener('click',e=>{
   else if('inhist' in d){openInHistory()}
   else if(d.pmonth){st.pp='month';st.pAt=+d.pmonth;render();scrollTo(0,0)}
   else if(d.accent){settings.accent=d.accent;if(curStyle()!=='none')settings.style='none';save();applyAccent();keepScroll(render)}
+  else if(d.lang){const was=settings.lang||'vi';settings.lang=d.lang;save();if(was==='ko'&&d.lang!=='ko'){location.reload();return}keepScroll(render);applyLang()}
   else if(d.cur){settings.cur=d.cur;save();keepScroll(render);renderBill()}
   else if(d.stg){st.stg=d.stg;keepScroll(render)}
   else if(d.style&&t.closest('.styles')){settings.style=d.style;save();applyAccent();keepScroll(render)}
